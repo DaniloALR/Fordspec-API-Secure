@@ -1,0 +1,6 @@
+>> Issue: [B105:hardcoded_password_string] Possible hardcoded password: 'bearer'
+   Severity: Low   Confidence: Medium
+   Location: app\routers\auth.py:35:8
+>> Issue: [B105:hardcoded_password_string] Possible hardcoded password: 'bearer'
+   Severity: Low   Confidence: Medium
+   Location: app\routers\auth.py:49:12
