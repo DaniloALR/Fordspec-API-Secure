@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Dados locais / segredos (nunca versionar)
+*.db
+*.sqlite
+.env
+.env.*
+!.env.example
+logs/
+backups/
+infra/certs/
+*.pem
+*.key
+*.crt

@@ -1,0 +1,1312 @@
+[
+  {
+    "category": "Engine & Transmission",
+    "name": "Peso em ordem de marchas",
+    "order": 1
+  },
+  {
+    "category": "Engine & Transmission",
+    "name": "Cilindrada",
+    "order": 2
+  },
+  {
+    "category": "Engine & Transmission",
+    "name": "Potência",
+    "order": 3
+  },
+  {
+    "category": "Engine & Transmission",
+    "name": "Torque",
+    "order": 4
+  },
+  {
+    "category": "Engine & Transmission",
+    "name": "Economia de Combustível",
+    "order": 5
+  },
+  {
+    "category": "Engine & Transmission",
+    "name": "Transmissão Automática",
+    "order": 6
+  },
+  {
+    "category": "Engine & Transmission",
+    "name": "Motor Flex vs Gasolina",
+    "order": 7
+  },
+  {
+    "category": "Engine & Transmission",
+    "name": "Tecnologia turbo",
+    "order": 8
+  },
+  {
+    "category": "Engine & Transmission",
+    "name": "Quantidade de marchas",
+    "order": 9
+  },
+  {
+    "category": "Engine & Transmission",
+    "name": "FHEV",
+    "order": 10
+  },
+  {
+    "category": "Engine & Transmission",
+    "name": "PHEV",
+    "order": 11
+  },
+  {
+    "category": "Engine & Transmission",
+    "name": "BEV",
+    "order": 12
+  },
+  {
+    "category": "Engine & Transmission",
+    "name": "Motor Diesel",
+    "order": 13
+  },
+  {
+    "category": "Engine & Transmission",
+    "name": "Paddle Shift",
+    "order": 14
+  },
+  {
+    "category": "Engine & Transmission",
+    "name": "E-Shifter (Manopla eletrônica)",
+    "order": 15
+  },
+  {
+    "category": "Engine & Transmission",
+    "name": "Tecnologia BiTurbo",
+    "order": 16
+  },
+  {
+    "category": "Engine & Transmission",
+    "name": "Motor Elétrico",
+    "order": 17
+  },
+  {
+    "category": "Engine & Transmission",
+    "name": "E-Autonomy",
+    "order": 18
+  },
+  {
+    "category": "Wheels",
+    "name": "Liga leve",
+    "order": 19
+  },
+  {
+    "category": "Wheels",
+    "name": "Polegadas",
+    "order": 20
+  },
+  {
+    "category": "Wheels",
+    "name": "Pneus ATR (50/50)",
+    "order": 21
+  },
+  {
+    "category": "Wheels",
+    "name": "Pneus RunFlat",
+    "order": 22
+  },
+  {
+    "category": "Wheels",
+    "name": "Pneus ATR Plus (60/40)",
+    "order": 23
+  },
+  {
+    "category": "Wheels",
+    "name": "Pneus Auto-vedantes",
+    "order": 24
+  },
+  {
+    "category": "Wheels",
+    "name": "Full Size Spare tires (same as vehicle base)",
+    "order": 25
+  },
+  {
+    "category": "Wheels",
+    "name": "Estepe temporário",
+    "order": 26
+  },
+  {
+    "category": "Connectivity",
+    "name": "Loja de Aplicativos",
+    "order": 27
+  },
+  {
+    "category": "Connectivity",
+    "name": "Digital assistant (Assistente Digital Inteligente)",
+    "order": 28
+  },
+  {
+    "category": "Connectivity",
+    "name": "Destravamento/Travamento das portas",
+    "order": 29
+  },
+  {
+    "category": "Connectivity",
+    "name": "Ignição Rota (com agendamento ou não)",
+    "order": 30
+  },
+  {
+    "category": "Connectivity",
+    "name": "Localização do Veículo",
+    "order": 31
+  },
+  {
+    "category": "Connectivity",
+    "name": "Vehicle Health and Alerts (+Veh Status)",
+    "order": 32
+  },
+  {
+    "category": "Connectivity",
+    "name": "Send POI to Navigation",
+    "order": 33
+  },
+  {
+    "category": "Connectivity",
+    "name": "Geofencing / Guard Mode",
+    "order": 34
+  },
+  {
+    "category": "Connectivity",
+    "name": "Vehicle Recovery",
+    "order": 35
+  },
+  {
+    "category": "Connectivity",
+    "name": "Usage Based Insurance – UBI",
+    "order": 36
+  },
+  {
+    "category": "Connectivity",
+    "name": "Wi-Fi Hotspot",
+    "order": 37
+  },
+  {
+    "category": "Connectivity",
+    "name": "Status de carregamento (EV)",
+    "order": 38
+  },
+  {
+    "category": "Connectivity",
+    "name": "Configuração de carregamento (EV)",
+    "order": 39
+  },
+  {
+    "category": "Connectivity",
+    "name": "Trip & Charge Log (EV)",
+    "order": 40
+  },
+  {
+    "category": "Connectivity",
+    "name": "Station Finder (EV)",
+    "order": 41
+  },
+  {
+    "category": "Connectivity",
+    "name": "Trends (EV)",
+    "order": 42
+  },
+  {
+    "category": "Connectivity",
+    "name": "Rankings (EV)",
+    "order": 43
+  },
+  {
+    "category": "Connectivity",
+    "name": "Atualizaçãos OTA",
+    "order": 44
+  },
+  {
+    "category": "Connectivity",
+    "name": "Agile Vehicle Data Collection",
+    "order": 45
+  },
+  {
+    "category": "Connectivity",
+    "name": "Online Traffic (Sync 4)",
+    "order": 46
+  },
+  {
+    "category": "Connectivity",
+    "name": "Local Hazard information",
+    "order": 47
+  },
+  {
+    "category": "Connectivity",
+    "name": "Zone Lighting",
+    "order": 48
+  },
+  {
+    "category": "Connectivity",
+    "name": "IP Pass-through",
+    "order": 49
+  },
+  {
+    "category": "Connectivity",
+    "name": "Low Charge Alert (EV)",
+    "order": 50
+  },
+  {
+    "category": "Connectivity",
+    "name": "Charge Station Space Availability Alert (EV)",
+    "order": 51
+  },
+  {
+    "category": "Connectivity",
+    "name": "Locate and Pay (EV)",
+    "order": 52
+  },
+  {
+    "category": "Connectivity",
+    "name": "Smart Charging (EV)",
+    "order": 53
+  },
+  {
+    "category": "Connectivity",
+    "name": "Plug and Charge (EV)",
+    "order": 54
+  },
+  {
+    "category": "Connectivity",
+    "name": "Planejador de Viagem (EV)",
+    "order": 55
+  },
+  {
+    "category": "Ice Line Up",
+    "name": "Bluetooth",
+    "order": 56
+  },
+  {
+    "category": "Ice Line Up",
+    "name": "Camera traseira",
+    "order": 57
+  },
+  {
+    "category": "Ice Line Up",
+    "name": "Camera 180 graus",
+    "order": 58
+  },
+  {
+    "category": "Ice Line Up",
+    "name": "Navegador GPS",
+    "order": 59
+  },
+  {
+    "category": "Ice Line Up",
+    "name": "Navegador GPS (Atualizavel)",
+    "order": 60
+  },
+  {
+    "category": "Ice Line Up",
+    "name": "Radio Mechless (Sem USB, Sem Bluetooth)",
+    "order": 61
+  },
+  {
+    "category": "Ice Line Up",
+    "name": "Reconhecimento por voz e/ou Comando de Voz",
+    "order": 62
+  },
+  {
+    "category": "Ice Line Up",
+    "name": "Alto-falantes/ Tweeters (unidade)",
+    "order": 63
+  },
+  {
+    "category": "Ice Line Up",
+    "name": "Head Up Display (HUD)",
+    "order": 64
+  },
+  {
+    "category": "Ice Line Up",
+    "name": "Tela no painel de instrumentos (monocromática) por polegada",
+    "order": 65
+  },
+  {
+    "category": "Ice Line Up",
+    "name": "Sistema de som Premium/Marca",
+    "order": 66
+  },
+  {
+    "category": "Ice Line Up",
+    "name": "Head Up Display (HUD) - (realidade aumentada)",
+    "order": 67
+  },
+  {
+    "category": "Ice Line Up",
+    "name": "Espelhamento de tela touch screen (Android Auto / Car Play) por cabo",
+    "order": 68
+  },
+  {
+    "category": "Ice Line Up",
+    "name": "Muitimedia polegadas",
+    "order": 69
+  },
+  {
+    "category": "Ice Line Up",
+    "name": "Assistência de Emergência",
+    "order": 70
+  },
+  {
+    "category": "Ice Line Up",
+    "name": "Carregamento Wireless",
+    "order": 71
+  },
+  {
+    "category": "Ice Line Up",
+    "name": "Subwoofer + Amplificador",
+    "order": 72
+  },
+  {
+    "category": "Ice Line Up",
+    "name": "Câmera 360 graus",
+    "order": 73
+  },
+  {
+    "category": "Ice Line Up",
+    "name": "Conexão Wireless Android Auto & Car Play",
+    "order": 74
+  },
+  {
+    "category": "Ice Line Up",
+    "name": "Tela no painel de instrumentos colorida por polegada",
+    "order": 75
+  },
+  {
+    "category": "Ice Line Up",
+    "name": "Alto-falantes premium/ Tweeters (unidade)",
+    "order": 76
+  },
+  {
+    "category": "Ice Line Up",
+    "name": "USB (unidade)",
+    "order": 77
+  },
+  {
+    "category": "Ice Line Up",
+    "name": "USB Passageiro (unidade)",
+    "order": 78
+  },
+  {
+    "category": "Air conditioning",
+    "name": "Ar Condicionado com saída p/ 2ª fileira ou mais de bancos",
+    "order": 79
+  },
+  {
+    "category": "Air conditioning",
+    "name": "Ar Condicionado Automático e Digital",
+    "order": 80
+  },
+  {
+    "category": "Air conditioning",
+    "name": "Ar condicionado de duas zonas",
+    "order": 81
+  },
+  {
+    "category": "Safety",
+    "name": "Sistema Anti Capotamento (Rollover Stability Control)",
+    "order": 82
+  },
+  {
+    "category": "Safety",
+    "name": "Freio Automático (Carro Parado)",
+    "order": 83
+  },
+  {
+    "category": "Safety",
+    "name": "Aviso de pressão baixa dos pneus (DDS)",
+    "order": 84
+  },
+  {
+    "category": "Safety",
+    "name": "Sensor de Pressão dos pneus (TPMS)",
+    "order": 85
+  },
+  {
+    "category": "Safety",
+    "name": "Controle de descida",
+    "order": 86
+  },
+  {
+    "category": "Safety",
+    "name": "Controle Adaptativo de carga",
+    "order": 87
+  },
+  {
+    "category": "Safety",
+    "name": "Controle de reboque",
+    "order": 88
+  },
+  {
+    "category": "Safety",
+    "name": "Trail Control",
+    "order": 89
+  },
+  {
+    "category": "Safety",
+    "name": "Controle de freio do Trailer",
+    "order": 90
+  },
+  {
+    "category": "Safety",
+    "name": "Vetorização de Torque",
+    "order": 91
+  },
+  {
+    "category": "Safety",
+    "name": "Freio automatico após impacto",
+    "order": 92
+  },
+  {
+    "category": "Safety",
+    "name": "Assistência de direção defensiva",
+    "order": 93
+  },
+  {
+    "category": "Safety",
+    "name": "ABS Off Road",
+    "order": 94
+  },
+  {
+    "category": "Safety",
+    "name": "Airbag (cada)",
+    "order": 95
+  },
+  {
+    "category": "High tech",
+    "name": "Piloto Automático",
+    "order": 96
+  },
+  {
+    "category": "High tech",
+    "name": "Limitador de Velocidade",
+    "order": 97
+  },
+  {
+    "category": "High tech",
+    "name": "Piloto Automático Adaptativo",
+    "order": 98
+  },
+  {
+    "category": "High tech",
+    "name": "Sistema de Permanência na Faixa (alerta e assistência)",
+    "order": 99
+  },
+  {
+    "category": "High tech",
+    "name": "Sensor de Estacionamento Traseiro",
+    "order": 100
+  },
+  {
+    "category": "High tech",
+    "name": "Sensor de Estacionamento Dianteiro",
+    "order": 101
+  },
+  {
+    "category": "High tech",
+    "name": "Sensor de Chuva",
+    "order": 102
+  },
+  {
+    "category": "High tech",
+    "name": "Espelho retrovisor eletrocrômico",
+    "order": 103
+  },
+  {
+    "category": "High tech",
+    "name": "Acendimento automático dos faróis (sensor crepuscular)",
+    "order": 104
+  },
+  {
+    "category": "High tech",
+    "name": "Partida Remota (Chave)",
+    "order": 105
+  },
+  {
+    "category": "High tech",
+    "name": "Detector de Fadiga",
+    "order": 106
+  },
+  {
+    "category": "High tech",
+    "name": "Sistema de Estacionamento Automático - (Acelera e freia)",
+    "order": 107
+  },
+  {
+    "category": "High tech",
+    "name": "Sistema de Estacionamento Automático - 2.0 (Supervisionado)",
+    "order": 108
+  },
+  {
+    "category": "High tech",
+    "name": "Sistema de Estacionamento Automático - Remoto",
+    "order": 109
+  },
+  {
+    "category": "High tech",
+    "name": "Freio de mão eletrônico",
+    "order": 110
+  },
+  {
+    "category": "High tech",
+    "name": "Retrovisor elétrico",
+    "order": 111
+  },
+  {
+    "category": "High tech",
+    "name": "Sistema de monitoramento de ponto-cego (BLIS)",
+    "order": 112
+  },
+  {
+    "category": "High tech",
+    "name": "Reconhecimento de sinais de trânsito",
+    "order": 113
+  },
+  {
+    "category": "High tech",
+    "name": "Abertura do porta-malas sem as mãos",
+    "order": 114
+  },
+  {
+    "category": "High tech",
+    "name": "Modo de condução (Ajuste da rigidez volante)",
+    "order": 115
+  },
+  {
+    "category": "High tech",
+    "name": "Drive Mode (Ajuste da rigidez volante, ignição e marcha)",
+    "order": 116
+  },
+  {
+    "category": "High tech",
+    "name": "AEB (Autonomous Emergency Brake)",
+    "order": 117
+  },
+  {
+    "category": "High tech",
+    "name": "Espelho retrovisor com rebatimento elétrico",
+    "order": 118
+  },
+  {
+    "category": "High tech",
+    "name": "Piloto Automático Adaptativo + Stop & GO + Reconhecimento de Placas (Ajuste Velocidade)",
+    "order": 119
+  },
+  {
+    "category": "High tech",
+    "name": "Alerta de Permanência em Faixa",
+    "order": 120
+  },
+  {
+    "category": "High tech",
+    "name": "Alerta de Colisão Frontal",
+    "order": 121
+  },
+  {
+    "category": "High tech",
+    "name": "Sistema de centralização de faixa",
+    "order": 122
+  },
+  {
+    "category": "High tech",
+    "name": "Piloto Automático Adaptativo + Stop & GO",
+    "order": 123
+  },
+  {
+    "category": "High tech",
+    "name": "Sistema de monitoramento de ponto-cego (BLIS) + Alerta de trafego cruzado",
+    "order": 124
+  },
+  {
+    "category": "High tech",
+    "name": "Reverse AEB",
+    "order": 125
+  },
+  {
+    "category": "High tech",
+    "name": "Sistema Keyless Entry com Botão de Partida (PEPS)",
+    "order": 126
+  },
+  {
+    "category": "High tech",
+    "name": "Espelho retrovisor interior digital",
+    "order": 127
+  },
+  {
+    "category": "High tech",
+    "name": "Aceleração Remota",
+    "order": 128
+  },
+  {
+    "category": "Global Closing",
+    "name": "Alarme Volumétrico (inclui perimétrico)",
+    "order": 129
+  },
+  {
+    "category": "Global Closing",
+    "name": "Alarme Perimétrico",
+    "order": 130
+  },
+  {
+    "category": "Global Closing",
+    "name": "Global Opening (Vidros, Travas e/ou Sunroof)",
+    "order": 131
+  },
+  {
+    "category": "Global Closing",
+    "name": "Trava Elétrica das portas",
+    "order": 132
+  },
+  {
+    "category": "Global Closing",
+    "name": "Vidro elétrico Traseiro",
+    "order": 133
+  },
+  {
+    "category": "Global Closing",
+    "name": "Sistema de um toque para cima/baixo + Anti-esmagamento (valor por por porta)",
+    "order": 134
+  },
+  {
+    "category": "Global Closing",
+    "name": "Abertura de porta traseira 270 (Van)",
+    "order": 135
+  },
+  {
+    "category": "Global Closing",
+    "name": "Thatcham Alarm (Bateria adicional)",
+    "order": 136
+  },
+  {
+    "category": "Global Closing",
+    "name": "Global Closing (Vidros, Travas e/ou Sunroof)",
+    "order": 137
+  },
+  {
+    "category": "Global Closing",
+    "name": "Tampa do Porta-malas automatico",
+    "order": 138
+  },
+  {
+    "category": "Global Closing",
+    "name": "Vidro Elétrico vidro caçamba (pickups)",
+    "order": 139
+  },
+  {
+    "category": "Global Closing",
+    "name": "Abertura do vidro do porta-malas",
+    "order": 140
+  },
+  {
+    "category": "Trim",
+    "name": "Bancos revestidos em couro",
+    "order": 141
+  },
+  {
+    "category": "Trim",
+    "name": "Bancos revestidos parcialmente (50% Vinil / 50% Tecido)",
+    "order": 142
+  },
+  {
+    "category": "Trim",
+    "name": "Manopla do câmbio com acabamento em Couro",
+    "order": 143
+  },
+  {
+    "category": "Trim",
+    "name": "Volante revestido em couro/vynil",
+    "order": 144
+  },
+  {
+    "category": "Trim",
+    "name": "Volante revestido parcialmente em couro",
+    "order": 145
+  },
+  {
+    "category": "Trim",
+    "name": "Painel Soft Touch",
+    "order": 146
+  },
+  {
+    "category": "Trim",
+    "name": "Bancos revestidos 100% Vinil",
+    "order": 147
+  },
+  {
+    "category": "Trim",
+    "name": "Alcantara / Outros (Adicional ao Couro/Vinil)",
+    "order": 148
+  },
+  {
+    "category": "SunRoof",
+    "name": "Teto Solar Elétrico",
+    "order": 149
+  },
+  {
+    "category": "SunRoof",
+    "name": "Teto Solar Panorâmico",
+    "order": 150
+  },
+  {
+    "category": "SunRoof",
+    "name": "Teto de Vidro",
+    "order": 151
+  },
+  {
+    "category": "Seats",
+    "name": "Banco Traseiro Bipartido (60/40)",
+    "order": 152
+  },
+  {
+    "category": "Seats",
+    "name": "Banco Traseiro aquecido",
+    "order": 153
+  },
+  {
+    "category": "Seats",
+    "name": "Bancos traseiros rebatíveis (100%)",
+    "order": 154
+  },
+  {
+    "category": "Seats",
+    "name": "Acento traseiro rebatimento pra Frente",
+    "order": 155
+  },
+  {
+    "category": "Seats",
+    "name": "Banco Traseiro Flip & Fold com compartimento",
+    "order": 156
+  },
+  {
+    "category": "Seats",
+    "name": "Banco com Memória",
+    "order": 157
+  },
+  {
+    "category": "Seats",
+    "name": "Bancos Aquecimento (Frontal)",
+    "order": 158
+  },
+  {
+    "category": "Seats",
+    "name": "Bancos refrigerado (Frontal)",
+    "order": 159
+  },
+  {
+    "category": "Seats",
+    "name": "3ª fileira de Bancos",
+    "order": 160
+  },
+  {
+    "category": "Seats",
+    "name": "Rebatimento Automatico do Encosto do banco traseiro",
+    "order": 161
+  },
+  {
+    "category": "Seats",
+    "name": "Terceiro Assento dianteiro",
+    "order": 162
+  },
+  {
+    "category": "Seats",
+    "name": "Massagem bancos dianteiros",
+    "order": 163
+  },
+  {
+    "category": "Seats",
+    "name": "Bancos reclináveis 180°",
+    "order": 164
+  },
+  {
+    "category": "Seats",
+    "name": "Banco posições Elétrico (cada posição)",
+    "order": 165
+  },
+  {
+    "category": "Seats",
+    "name": "Banco posições Manual",
+    "order": 166
+  },
+  {
+    "category": "Seats",
+    "name": "Bancos Recaro",
+    "order": 167
+  },
+  {
+    "category": "Lights",
+    "name": "Faróis Full LED",
+    "order": 168
+  },
+  {
+    "category": "Lights",
+    "name": "Faróis de Xenon",
+    "order": 169
+  },
+  {
+    "category": "Lights",
+    "name": "Faróis direcionais",
+    "order": 170
+  },
+  {
+    "category": "Lights",
+    "name": "Faróis auxiliares em curvas",
+    "order": 171
+  },
+  {
+    "category": "Lights",
+    "name": "Farol com Projetor",
+    "order": 172
+  },
+  {
+    "category": "Lights",
+    "name": "LED Day time running lights (DTRL) + Signature Lights",
+    "order": 173
+  },
+  {
+    "category": "Lights",
+    "name": "Farol alto automático",
+    "order": 174
+  },
+  {
+    "category": "Lights",
+    "name": "Faróis de Neblina Dianteiro",
+    "order": 175
+  },
+  {
+    "category": "Lights",
+    "name": "Luz de Neblina Traseiro",
+    "order": 176
+  },
+  {
+    "category": "Lights",
+    "name": "Lanternas em LED - parcial",
+    "order": 177
+  },
+  {
+    "category": "Lights",
+    "name": "Lanternas em Full LED",
+    "order": 178
+  },
+  {
+    "category": "Lights",
+    "name": "Seta no retrovisor",
+    "order": 179
+  },
+  {
+    "category": "Lights",
+    "name": "Lâmpada Farol de Neblina LED",
+    "order": 180
+  },
+  {
+    "category": "Lights",
+    "name": "Farois Matrix Led",
+    "order": 181
+  },
+  {
+    "category": "Lights",
+    "name": "Iluminação 360°",
+    "order": 182
+  },
+  {
+    "category": "Lights",
+    "name": "Ajuste de altura de faróis automático",
+    "order": 183
+  },
+  {
+    "category": "Lights",
+    "name": "Ajuste de Altura de faróis",
+    "order": 184
+  },
+  {
+    "category": "Lights",
+    "name": "Iluminação na caçamba (interno) + Chicote Elétrico",
+    "order": 185
+  },
+  {
+    "category": "4X4",
+    "name": "Tração 4x4 (high/low)",
+    "order": 186
+  },
+  {
+    "category": "4X4",
+    "name": "Diferencial traseiro blocante",
+    "order": 187
+  },
+  {
+    "category": "4X4",
+    "name": "Diferencial traseiro com deslizamento limitado",
+    "order": 188
+  },
+  {
+    "category": "4X4",
+    "name": "Santo Antônio tubular (Pickups)",
+    "order": 189
+  },
+  {
+    "category": "4X4",
+    "name": "Santo Antônio (estilizado c/ box rail)",
+    "order": 190
+  },
+  {
+    "category": "4X4",
+    "name": "Estribo Lateral Plataforma (Pickups)",
+    "order": 191
+  },
+  {
+    "category": "4X4",
+    "name": "Estribo Lateral tubular metálico (Pickups)",
+    "order": 192
+  },
+  {
+    "category": "4X4",
+    "name": "Bloqueio de diferencial dianteiro (FWD)",
+    "order": 193
+  },
+  {
+    "category": "4X4",
+    "name": "Protetor de Caçamba",
+    "order": 194
+  },
+  {
+    "category": "4X4",
+    "name": "Box rails (na parte superior da caçamba)",
+    "order": 195
+  },
+  {
+    "category": "4X4",
+    "name": "Capota Maritima (Pickups)",
+    "order": 196
+  },
+  {
+    "category": "4X4",
+    "name": "Terrain Management System (i.e: Modes Auto, Sand, Snow, Mud, Rock)",
+    "order": 197
+  },
+  {
+    "category": "4X4",
+    "name": "Capota Rigida",
+    "order": 198
+  },
+  {
+    "category": "4X4",
+    "name": "Tração Traseira",
+    "order": 199
+  },
+  {
+    "category": "4X4",
+    "name": "Tração integral (AWD)",
+    "order": 200
+  },
+  {
+    "category": "4X4",
+    "name": "Suspensão Off road FOX Live Valve Eixo Frontal/Traseiro",
+    "order": 201
+  },
+  {
+    "category": "4X4",
+    "name": "4x4 Lock (Adicional ao AWD) - 4WD",
+    "order": 202
+  },
+  {
+    "category": "4X4",
+    "name": "Protetor de Caçamba Spray-in",
+    "order": 203
+  },
+  {
+    "category": "4X4",
+    "name": "Suspensão Melhorada",
+    "order": 204
+  },
+  {
+    "category": "4X4",
+    "name": "Santo Antônio Deslizante (Swing in Place)",
+    "order": 205
+  },
+  {
+    "category": "4X4",
+    "name": "Peito de aço",
+    "order": 206
+  },
+  {
+    "category": "4X4",
+    "name": "Suspensão a Ar (Active Level)",
+    "order": 207
+  },
+  {
+    "category": "Others",
+    "name": "Anos de garantia",
+    "order": 208
+  },
+  {
+    "category": "Others",
+    "name": "Anos de garantia da bateria (HEV or BEV)",
+    "order": 209
+  },
+  {
+    "category": "Others",
+    "name": "Tomada 110V (cada)",
+    "order": 210
+  },
+  {
+    "category": "Others",
+    "name": "Apoio de braço dianteiro (integrado no banco)",
+    "order": 211
+  },
+  {
+    "category": "Others",
+    "name": "Apoio de braço traseiro",
+    "order": 212
+  },
+  {
+    "category": "Others",
+    "name": "Cabine Dupla (pickups)",
+    "order": 213
+  },
+  {
+    "category": "Others",
+    "name": "Cabine simples (pickups)",
+    "order": 214
+  },
+  {
+    "category": "Others",
+    "name": "Cabine simples sem caçamba (Chassis) (pickups)",
+    "order": 215
+  },
+  {
+    "category": "Others",
+    "name": "Alargadores de Paralamas",
+    "order": 216
+  },
+  {
+    "category": "Others",
+    "name": "Ajuste dos Pedais elétrico",
+    "order": 217
+  },
+  {
+    "category": "Others",
+    "name": "Degrau acesso caçamba",
+    "order": 218
+  },
+  {
+    "category": "Others",
+    "name": "Assistente da Tampa da Caçamba",
+    "order": 219
+  },
+  {
+    "category": "Others",
+    "name": "Travamento elétrico da caçamba",
+    "order": 220
+  },
+  {
+    "category": "Others",
+    "name": "Capota Marítima Elétrica",
+    "order": 221
+  },
+  {
+    "category": "Others",
+    "name": "Faixa Adesiva (ex: capo, lateral, etc)",
+    "order": 222
+  },
+  {
+    "category": "Others",
+    "name": "Freios Brembo (Por Eixo)",
+    "order": 223
+  },
+  {
+    "category": "Others",
+    "name": "Sistema de escapamento com Válvula ativa",
+    "order": 224
+  },
+  {
+    "category": "Others",
+    "name": "Pro Power 2.000W",
+    "order": 225
+  },
+  {
+    "category": "Others",
+    "name": "Escada de acesso à caçamba",
+    "order": 226
+  },
+  {
+    "category": "Others",
+    "name": "Superfície para trabalho na tampa na caçamba",
+    "order": 227
+  },
+  {
+    "category": "Others",
+    "name": "Monitor de vida util do óleo",
+    "order": 228
+  },
+  {
+    "category": "Others",
+    "name": "Bagageiro de teto (barras longitudinais)",
+    "order": 229
+  },
+  {
+    "category": "Others",
+    "name": "Compartimento para caçamba",
+    "order": 230
+  },
+  {
+    "category": "Others",
+    "name": "Tampa Traseira Multifuncional (c/ abertura lateral)",
+    "order": 231
+  },
+  {
+    "category": "Others",
+    "name": "Engate de Reboque 3.500 kg",
+    "order": 232
+  },
+  {
+    "category": "Others",
+    "name": "Volantes aquecidos",
+    "order": 233
+  },
+  {
+    "category": "Others",
+    "name": "Tacógrafo Digital",
+    "order": 234
+  },
+  {
+    "category": "Others",
+    "name": "Bagageiro de teto (barras transversais)",
+    "order": 235
+  },
+  {
+    "category": "Others",
+    "name": "Bússola e inclinômetros longitudinal e transversal",
+    "order": 236
+  },
+  {
+    "category": "Others",
+    "name": "Console dianteiro central com apoio de braço",
+    "order": 237
+  },
+  {
+    "category": "Others",
+    "name": "Disco de freio traseiro",
+    "order": 238
+  },
+  {
+    "category": "Others",
+    "name": "Espelho Retrovisor Externo Cromado",
+    "order": 239
+  },
+  {
+    "category": "Others",
+    "name": "Ganchos para Reboque (cada)",
+    "order": 240
+  },
+  {
+    "category": "Others",
+    "name": "Grade do radiador com acabamento Premium (Black Piano, Cromo, Cor veiculo)",
+    "order": 241
+  },
+  {
+    "category": "Others",
+    "name": "Maçanetas externas cromadas",
+    "order": 242
+  },
+  {
+    "category": "Others",
+    "name": "Molduras Laterais na Cor do Veículo (Friso)",
+    "order": 243
+  },
+  {
+    "category": "Others",
+    "name": "Molduras Laterais na Cor Preta (Friso)",
+    "order": 244
+  },
+  {
+    "category": "Others",
+    "name": "Moldura cromada/Black Piano das janelas",
+    "order": 245
+  },
+  {
+    "category": "Others",
+    "name": "Para Barro (Par)",
+    "order": 246
+  },
+  {
+    "category": "Others",
+    "name": "Para-choque Traseiro Cromado",
+    "order": 247
+  },
+  {
+    "category": "Others",
+    "name": "Para-choque na Cor do Veículo",
+    "order": 248
+  },
+  {
+    "category": "Others",
+    "name": "Protetor de cárter",
+    "order": 249
+  },
+  {
+    "category": "Others",
+    "name": "Protetor inferior do tanque de combustível",
+    "order": 250
+  },
+  {
+    "category": "Others",
+    "name": "Aerofólio (Spoiler)",
+    "order": 251
+  },
+  {
+    "category": "Others",
+    "name": "Tapete de porta-malas",
+    "order": 252
+  },
+  {
+    "category": "Others",
+    "name": "Tapete de Borracha",
+    "order": 253
+  },
+  {
+    "category": "Others",
+    "name": "Tapete Carpete",
+    "order": 254
+  },
+  {
+    "category": "Others",
+    "name": "Iluminação Ambiente One Color (Ambient Light)",
+    "order": 255
+  },
+  {
+    "category": "Others",
+    "name": "Iluminação Ambiente Multi-Color (Ambient Light)",
+    "order": 256
+  },
+  {
+    "category": "Others",
+    "name": "Retrovisores com luz de aproximação",
+    "order": 257
+  },
+  {
+    "category": "Others",
+    "name": "Preparação para reboque (Chicote)",
+    "order": 258
+  },
+  {
+    "category": "Others",
+    "name": "Teto pintado em duas cores",
+    "order": 259
+  },
+  {
+    "category": "Others",
+    "name": "Sistema de gerencimento de carga dos porta malas/caçamba (Divisão de Espaços)",
+    "order": 260
+  },
+  {
+    "category": "Others",
+    "name": "Tomada 12V (cada)",
+    "order": 261
+  },
+  {
+    "category": "Others",
+    "name": "Estribo lateral elétrico (por lado)",
+    "order": 262
+  }
+]

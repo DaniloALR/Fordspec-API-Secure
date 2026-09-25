@@ -1,0 +1,43 @@
+============================================================
+BLOCO 2 — Autenticação e Autorização (JWT + RBAC)
+============================================================
+[PASS] Acesso sem token -> 401 (esperado 401)
+{"ts": "2026-05-23T16:32:46.383511+00:00", "tipo": "auditoria", "trace_id": null, "usuario": "analista", "acao": "login", "recurso": "/v1/auth/login"}
+[PASS] Login válido -> 200
+{"ts": "2026-05-23T16:32:46.668164+00:00", "tipo": "seguranca", "trace_id": null, "evento": "login_falha", "ip": "testclient", "detalhe": "usuario=analista"}
+[PASS] Login senha errada -> 401 | msg: Credenciais inválidas.
+{"ts": "2026-05-23T16:32:46.672679+00:00", "tipo": "auditoria", "trace_id": null, "usuario": "analista", "acao": "gerar_ficha", "recurso": "Ford/Ranger/Limited 3.0L V6 26MY"}
+[PASS] Acesso com token válido -> 201
+[PASS] Analista tenta exportar -> 403 (esperado 403)
+{"ts": "2026-05-23T16:32:46.982582+00:00", "tipo": "auditoria", "trace_id": null, "usuario": "curador", "acao": "login", "recurso": "/v1/auth/login"}
+{"ts": "2026-05-23T16:32:46.987105+00:00", "tipo": "auditoria", "trace_id": null, "usuario": "curador", "acao": "exportar_ficha", "recurso": "Ford/Ranger/Limited 3.0L V6 26MY"}
+[PASS] Curador exporta -> 200 (esperado 200)
+
+============================================================
+BLOCO 1 — Validação e Sanitização
+============================================================
+[PASS] Tentativa de SQL injection -> 422 (esperado 422)
+[PASS] Tentativa de XSS -> 422 (esperado 422)
+[PASS] Excesso de atributos (>50) -> 422 (esperado 422)
+
+============================================================
+BLOCO 3 — Proteção de APIs (headers + rate limit)
+============================================================
+[PASS] Header HSTS presente -> max-age=31536000; includeSubDo
+[PASS] Header X-Content-Type-Options -> nosniff
+
+============================================================
+BLOCO 4 — Dados e Privacidade
+============================================================
+[PASS] Criptografia em repouso -> gAAAAABqEdavOAC0k75wnk-O...
+[PASS] Descriptografia recupera o original
+[PASS] Pseudonimização estável e irreversível -> ANON_17c5c8534a4c8d46
+[PASS] Mascaramento de e-mail -> j********a@x.com
+
+============================================================
+BLOCO 5 — Logs e Auditoria
+============================================================
+[PASS] Trilha de auditoria (exemplo de log estruturado):
+{"ts": "2026-05-23T16:32:47.020080+00:00", "tipo": "auditoria", "trace_id": null, "usuario": "analista", "acao": "gerar_ficha", "recurso": "Ford/Ranger/Raptor"}
+{"ts": "2026-05-23T16:32:47.020237+00:00", "tipo": "seguranca", "trace_id": null, "evento": "brute_force_suspeito", "ip": "1.2.3.4", "detalhe": "5 falhas consecutivas"}
+[PASS] Monitor detecta brute force após 5 falhas -> alerta=True
