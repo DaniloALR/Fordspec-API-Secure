@@ -1,0 +1,26 @@
+# Roteamento de alertas. Críticos vão para o plantão de segurança; a URL do
+# webhook (Teams/Slack/PagerDuty) vem de secret, não deste arquivo.
+route:
+  receiver: time-devsecops
+  group_by: [alertname, severity]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers: [severity="critical"]
+      receiver: plantao-seguranca
+      repeat_interval: 30m
+
+receivers:
+  - name: time-devsecops
+    webhook_configs:
+      - url_file: /run/secrets/alert_webhook_url
+        send_resolved: true
+  - name: plantao-seguranca
+    webhook_configs:
+      - url_file: /run/secrets/alert_webhook_url
+        send_resolved: true
+
+inhibit_rules:
+  - source_matchers: [alertname="APIForaDoAr"]
+    target_matchers: [severity="warning"]

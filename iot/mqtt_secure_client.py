@@ -90,6 +90,11 @@ def publicar(device_id: str, intervalo: float, quantidade: int):
 
 
 def assinar_topico():
+    from prometheus_client import Counter, start_http_server
+
+    mensagens = Counter("fordspec_iot_messages_total",
+                        "Mensagens de telemetria por resultado.", ["result"])
+    start_http_server(int(os.getenv("IOT_METRICS_PORT", "9101")))
     mestra = chave_mestra()
     nonces = NonceCache()
     c, host, porta = _cliente(os.getenv("MQTT_CLIENT_ID", "ingest-service"))
@@ -102,9 +107,11 @@ def assinar_topico():
         device = message.topic.split("/")[2]
         try:
             msg = verificar(message.payload, mestra, nonces, device_do_topico=device)
+            mensagens.labels(result="aceita").inc()
             log("telemetria_aceita", device_id=msg["device_id"], dados=msg["data"])
         except TelemetryRejected as exc:
             # alerta: assinatura inválida/replay indicam dispositivo clonado ou MITM
+            mensagens.labels(result=exc.motivo.split(":")[0]).inc()
             log("telemetria_rejeitada", nivel="WARNING", device_topico=device,
                 motivo=exc.motivo)
 

@@ -1,0 +1,105 @@
+# Regras de alerta FordSpec: cada alerta aponta para um playbook do plano de
+# resposta a incidentes (docs_seguranca/SPRINT3_DevSecOps.md, seção 3.4).
+groups:
+  - name: fordspec-seguranca
+    rules:
+      - alert: ForcaBrutaDetectada
+        expr: increase(fordspec_security_brute_force_alerts_total[5m]) > 0
+        labels: {severity: critical, playbook: PB-01}
+        annotations:
+          summary: "Brute force no login (>=5 falhas do mesmo IP em 5 min)"
+          description: "Ver logs evento=brute_force_suspeito no Loki e bloquear o IP no WAF."
+
+      - alert: TaxaDeFalhasDeLoginAlta
+        expr: sum(rate(fordspec_auth_login_failures_total[5m])) * 60 > 30
+        for: 2m
+        labels: {severity: warning, playbook: PB-01}
+        annotations:
+          summary: "Mais de 30 falhas de login/min (credential stuffing distribuído?)"
+
+      - alert: ContaBloqueada
+        expr: increase(fordspec_auth_account_lockouts_total[10m]) > 0
+        labels: {severity: warning, playbook: PB-01}
+        annotations:
+          summary: "Conta bloqueada por excesso de tentativas"
+
+      - alert: ReusoDeRefreshToken
+        expr: increase(fordspec_auth_refresh_reuse_total[5m]) > 0
+        labels: {severity: critical, playbook: PB-02}
+        annotations:
+          summary: "Refresh token revogado reapresentado: provável roubo de sessão"
+
+      - alert: TokensInvalidosEmMassa
+        expr: sum(increase(fordspec_auth_token_rejected_total{reason="invalido"}[5m])) > 20
+        labels: {severity: warning, playbook: PB-02}
+        annotations:
+          summary: "Tokens com assinatura/claims inválidas: possível forja de JWT"
+
+      - alert: PicoDeAcessosNegados
+        expr: sum(increase(fordspec_authz_denied_total[5m])) > 20
+        labels: {severity: warning, playbook: PB-03}
+        annotations:
+          summary: "Muitos 403/BOLA: tentativa de escalonamento ou enumeração de IDs"
+
+      - alert: AlteracaoDePerfil
+        expr: increase(fordspec_critical_changes_total{action="alteracao_perfil"}[5m]) > 0
+        labels: {severity: info, playbook: PB-03}
+        annotations:
+          summary: "Perfil de usuário alterado: confirmar se a mudança foi autorizada"
+
+      - alert: RateLimitDisparado
+        expr: sum(rate(fordspec_rate_limited_total[5m])) * 60 > 60
+        for: 5m
+        labels: {severity: warning, playbook: PB-04}
+        annotations:
+          summary: "Rate limit bloqueando mais de 60 req/min: scraping ou DoS"
+
+      - alert: TentativasDeInjecao
+        expr: sum(increase(fordspec_input_rejected_total[5m])) > 50
+        labels: {severity: warning, playbook: PB-04}
+        annotations:
+          summary: "Pico de entradas rejeitadas (SQLi/XSS/fuzzing)"
+
+  - name: fordspec-disponibilidade
+    rules:
+      - alert: APIForaDoAr
+        expr: up{job="fordspec-api"} == 0
+        for: 1m
+        labels: {severity: critical, playbook: PB-05}
+        annotations:
+          summary: "API FordSpec indisponível"
+
+      - alert: TaxaDeErros5xxAlta
+        expr: |
+          sum(rate(fordspec_http_requests_total{status=~"5.."}[5m]))
+            / clamp_min(sum(rate(fordspec_http_requests_total[5m])), 1e-9) > 0.05
+        for: 5m
+        labels: {severity: critical, playbook: PB-05}
+        annotations:
+          summary: "Mais de 5% de respostas 5xx"
+
+      - alert: LatenciaP95Alta
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(fordspec_http_request_duration_seconds_bucket[5m]))) > 1
+        for: 10m
+        labels: {severity: warning, playbook: PB-05}
+        annotations:
+          summary: "Latência p95 acima de 1s"
+
+  - name: fordspec-iot
+    rules:
+      - alert: TelemetriaIoTForjadaOuReplay
+        expr: |
+          sum(increase(fordspec_iot_messages_total{
+            result=~"assinatura_invalida|replay|device_diferente_do_topico"}[5m])) > 0
+        labels: {severity: critical, playbook: PB-06}
+        annotations:
+          summary: "Mensagem MQTT com assinatura inválida ou replay: dispositivo clonado ou MITM"
+
+      - alert: TelemetriaIoTParou
+        expr: sum(rate(fordspec_iot_messages_total{result="aceita"}[15m])) == 0
+        for: 15m
+        labels: {severity: warning, playbook: PB-06}
+        annotations:
+          summary: "Nenhuma telemetria válida em 15 min (broker, certificados ou rede)"

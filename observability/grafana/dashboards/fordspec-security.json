@@ -1,0 +1,128 @@
+{
+  "uid": "fordspec-security",
+  "title": "FordSpec — Segurança e Operação",
+  "tags": ["fordspec", "devsecops", "seguranca"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {"from": "now-6h", "to": "now"},
+  "panels": [
+    {"type": "row", "title": "Saúde da API", "collapsed": false, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0}},
+    {
+      "type": "stat", "title": "API no ar",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 1},
+      "targets": [{"refId": "A", "expr": "up{job=\"fordspec-api\"}"}],
+      "fieldConfig": {"defaults": {
+        "mappings": [{"type": "value", "options": {"0": {"text": "FORA", "color": "red"}, "1": {"text": "OK", "color": "green"}}}],
+        "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}
+      }}
+    },
+    {
+      "type": "stat", "title": "Requisições/s",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 1},
+      "targets": [{"refId": "A", "expr": "sum(rate(fordspec_http_requests_total[5m]))"}],
+      "fieldConfig": {"defaults": {"unit": "reqps", "decimals": 2}}
+    },
+    {
+      "type": "stat", "title": "Taxa de erros 5xx",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 1},
+      "targets": [{"refId": "A", "expr": "sum(rate(fordspec_http_requests_total{status=~\"5..\"}[5m])) / clamp_min(sum(rate(fordspec_http_requests_total[5m])), 1e-9)"}],
+      "fieldConfig": {"defaults": {"unit": "percentunit",
+        "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 0.01}, {"color": "red", "value": 0.05}]}}}
+    },
+    {
+      "type": "stat", "title": "Latência p95",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 1},
+      "targets": [{"refId": "A", "expr": "histogram_quantile(0.95, sum by (le) (rate(fordspec_http_request_duration_seconds_bucket[5m])))"}],
+      "fieldConfig": {"defaults": {"unit": "s",
+        "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 0.5}, {"color": "red", "value": 1}]}}}
+    },
+    {
+      "type": "timeseries", "title": "Requisições por status HTTP",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 5},
+      "targets": [{"refId": "A", "expr": "sum by (status) (rate(fordspec_http_requests_total[5m]))", "legendFormat": "{{status}}"}],
+      "fieldConfig": {"defaults": {"unit": "reqps"}}
+    },
+
+    {"type": "row", "title": "Autenticação e autorização", "collapsed": false, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 13}},
+    {
+      "type": "stat", "title": "Alertas de brute force (24h)",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 14},
+      "targets": [{"refId": "A", "expr": "sum(increase(fordspec_security_brute_force_alerts_total[24h]))"}],
+      "fieldConfig": {"defaults": {"decimals": 0,
+        "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}}}
+    },
+    {
+      "type": "stat", "title": "Contas bloqueadas (24h)",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 14},
+      "targets": [{"refId": "A", "expr": "sum(increase(fordspec_auth_account_lockouts_total[24h]))"}],
+      "fieldConfig": {"defaults": {"decimals": 0,
+        "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 1}]}}}
+    },
+    {
+      "type": "stat", "title": "Reuso de refresh token (24h)",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 14},
+      "targets": [{"refId": "A", "expr": "sum(increase(fordspec_auth_refresh_reuse_total[24h]))"}],
+      "fieldConfig": {"defaults": {"decimals": 0,
+        "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}}}
+    },
+    {
+      "type": "stat", "title": "Alterações críticas (24h)",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 14},
+      "targets": [{"refId": "A", "expr": "sum(increase(fordspec_critical_changes_total[24h]))"}],
+      "fieldConfig": {"defaults": {"decimals": 0}}
+    },
+    {
+      "type": "timeseries", "title": "Falhas de login por motivo",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 18},
+      "targets": [{"refId": "A", "expr": "sum by (reason) (increase(fordspec_auth_login_failures_total[5m]))", "legendFormat": "{{reason}}"}]
+    },
+    {
+      "type": "timeseries", "title": "Acessos negados (RBAC/BOLA) e tokens rejeitados",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 18},
+      "targets": [
+        {"refId": "A", "expr": "sum by (permission) (increase(fordspec_authz_denied_total[5m]))", "legendFormat": "negado: {{permission}}"},
+        {"refId": "B", "expr": "sum by (reason) (increase(fordspec_auth_token_rejected_total[5m]))", "legendFormat": "token: {{reason}}"}
+      ]
+    },
+
+    {"type": "row", "title": "Proteção da API e IoT", "collapsed": false, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 26}},
+    {
+      "type": "timeseries", "title": "Rate limit, payload excedido e entradas rejeitadas",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 27},
+      "targets": [
+        {"refId": "A", "expr": "sum by (rule) (increase(fordspec_rate_limited_total[5m]))", "legendFormat": "429 {{rule}}"},
+        {"refId": "B", "expr": "sum(increase(fordspec_payload_too_large_total[5m]))", "legendFormat": "413"},
+        {"refId": "C", "expr": "sum by (route) (increase(fordspec_input_rejected_total[5m]))", "legendFormat": "422 {{route}}"}
+      ]
+    },
+    {
+      "type": "timeseries", "title": "Telemetria IoT por resultado",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 27},
+      "targets": [{"refId": "A", "expr": "sum by (result) (increase(fordspec_iot_messages_total[5m]))", "legendFormat": "{{result}}"}]
+    },
+
+    {"type": "row", "title": "Logs de segurança (Loki)", "collapsed": false, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 35}},
+    {
+      "type": "logs", "title": "Eventos de segurança e auditoria",
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 36},
+      "targets": [{"refId": "A", "expr": "{job=\"fordspec-api\", tipo=~\"seguranca|auditoria|erro\"}"}],
+      "options": {"showTime": true, "wrapLogMessage": true, "sortOrder": "Descending", "enableLogDetails": true}
+    }
+  ]
+}
