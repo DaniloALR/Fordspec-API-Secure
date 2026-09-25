@@ -19,3 +19,4 @@ infra/certs/
 *.pem
 *.key
 *.crt
+.dev-secrets.json

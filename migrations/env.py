@@ -1,12 +1,14 @@
 from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 from alembic import context
-from app.db.database import Base
+from app.db.database import Base, DATABASE_URL
 from app.db import models  # noqa: F401 — registra as tabelas
 
 config = context.config
 if config.config_file_name:
     fileConfig(config.config_file_name)
+# credenciais do banco vêm do ambiente, nunca do alembic.ini versionado
+config.set_main_option("sqlalchemy.url", DATABASE_URL.replace("%", "%%"))
 target_metadata = Base.metadata
 
 def run_migrations_offline():
