@@ -30,7 +30,7 @@ class SpecService:
         self.spec_repo = SpecRepository()
 
     def generate(self, db: Session, brand: str, model: str, version: str,
-                 attributes: list[str] | None):
+                 attributes: list[str] | None, requested_by: str | None = None):
         vehicle = self.vehicle_repo.find_version(db, brand, model, version)
         if not vehicle:
             raise VersionNotFound(brand, model, version)
@@ -65,7 +65,7 @@ class SpecService:
                     "status": "not_available", "source": None,
                 })
 
-        req = self.spec_repo.save_request(db, brand, model, version)
+        req = self.spec_repo.save_request(db, brand, model, version, requested_by)
 
         return {
             "id": req.id,

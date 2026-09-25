@@ -1,7 +1,9 @@
 import json
 import os
+import secrets
 from app.db.database import SessionLocal, Base, engine
 from app.db import models
+from app.security.auth import ROLES, hash_password
 
 HERE = os.path.dirname(__file__)
 
@@ -20,6 +22,31 @@ def infer_type_unit(name: str):
     if name in UNIT_HINTS:
         return UNIT_HINTS[name]
     return ("boolean", None)  # maioria é X/0
+
+
+def seed_users(db):
+    """Cria um usuário por perfil, se não existir.
+
+    Sprint 3: senhas não ficam mais no código. Vêm de SEED_PASSWORD_<PERFIL>
+    (ex.: SEED_PASSWORD_GESTOR) ou são geradas aleatoriamente e exibidas UMA vez.
+    """
+    for role in ROLES:
+        if db.query(models.AppUser).filter_by(username=role).first():
+            continue
+        senha = os.getenv(f"SEED_PASSWORD_{role.upper()}")
+        gerada = senha is None
+        if gerada:
+            senha = secrets.token_urlsafe(18)
+        db.add(models.AppUser(
+            username=role, password_hash=hash_password(senha), role=role,
+            email=os.getenv(f"SEED_EMAIL_{role.upper()}", f"{role}@fordspec.local"),
+        ))
+        if gerada:
+            print(f"[seed] usuário '{role}' criado. Senha gerada (anote, não será exibida "
+                  f"novamente): {senha}")
+        else:
+            print(f"[seed] usuário '{role}' criado com senha de SEED_PASSWORD_{role.upper()}.")
+    db.commit()
 
 
 def run():
@@ -68,6 +95,7 @@ def run():
             print(f"[seed] versão '{version_name}' curada com {len(values)} atributos.")
 
         db.commit()
+        seed_users(db)
         print("[seed] Concluído com sucesso.")
     finally:
         db.close()

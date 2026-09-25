@@ -1,10 +1,15 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import (
-    Column, Integer, String, Text, DateTime, ForeignKey, UniqueConstraint
+    Boolean, Column, Integer, String, Text, DateTime, ForeignKey, UniqueConstraint
 )
 from sqlalchemy.orm import relationship
 from app.db.database import Base
+from app.security.data_privacy import EncryptedString
+
+
+def _utcnow():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 class Attribute(Base):
@@ -49,4 +54,36 @@ class SpecRequest(Base):
     brand = Column(String(60))
     model = Column(String(60))
     version = Column(String(160))
-    created_at = Column(DateTime, default=datetime.utcnow)
+    # dono da ficha, pseudonimizado (LGPD) — usado no controle de acesso por objeto
+    requested_by = Column(String(40), nullable=True, index=True)
+    created_at = Column(DateTime, default=_utcnow)
+
+
+class AppUser(Base):
+    """Usuários persistidos (antes: dict em memória com senhas no código)."""
+    __tablename__ = "app_user"
+    id = Column(Integer, primary_key=True)
+    username = Column(String(40), unique=True, nullable=False, index=True)
+    password_hash = Column(String(100), nullable=False)
+    role = Column(String(20), nullable=False)
+    email = Column(EncryptedString, nullable=True)  # cifrado em repouso
+    is_active = Column(Boolean, default=True, nullable=False)
+    failed_attempts = Column(Integer, default=0, nullable=False)
+    locked_until = Column(DateTime, nullable=True)
+    token_version = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
+
+
+class AuditEvent(Base):
+    """Trilha de auditoria à prova de adulteração (hash encadeado)."""
+    __tablename__ = "audit_event"
+    id = Column(Integer, primary_key=True)
+    ts = Column(DateTime, default=_utcnow, nullable=False, index=True)
+    actor = Column(String(60), nullable=False)
+    action = Column(String(60), nullable=False, index=True)
+    resource = Column(String(200), nullable=False)
+    ip = Column(String(60), nullable=True)
+    trace_id = Column(String(36), nullable=True)
+    prev_hash = Column(String(64), nullable=False)
+    hash = Column(String(64), nullable=False)
