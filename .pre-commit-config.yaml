@@ -1,0 +1,21 @@
+# Segurança no commit (shift-left): roda antes do código sair da máquina.
+#   pip install pre-commit && pre-commit install
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.4
+    hooks:
+      - id: bandit
+        args: ["-ll", "-ii"]
+        files: ^(app|iot|scripts|seed)/
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: detect-private-key
+      - id: check-added-large-files
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-json

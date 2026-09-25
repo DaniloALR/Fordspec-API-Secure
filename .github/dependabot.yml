@@ -1,0 +1,20 @@
+# Rotina automática de revisão de dependências (SCA contínuo).
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /
+    schedule: {interval: weekly, day: monday}
+    open-pull-requests-limit: 10
+    labels: [dependencies, security]
+    groups:
+      seguranca:
+        applies-to: security-updates
+        patterns: ["*"]
+  - package-ecosystem: docker
+    directory: /
+    schedule: {interval: weekly}
+    labels: [dependencies, docker]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: {interval: weekly}
+    labels: [dependencies, ci]

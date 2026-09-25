@@ -1,0 +1,288 @@
+# Pipeline DevSecOps FordSpec: segurança em cada etapa, do commit ao deploy.
+#
+#   commit/PR ─┬─ 1. Secret scanning (Gitleaks) ──────┐
+#              ├─ 2. SAST (Semgrep + Bandit) ──────────┤
+#              ├─ 3. SCA (pip-audit + Dependency Review)┤
+#              ├─ 4. Testes (pytest + cobertura) ───────┼─► 6. Build + Trivy + SBOM ─► 7. DAST (ZAP) ─► 8. Deploy (main, aprovação)
+#              └─ 5. IaC (Checkov) ────────────────────┘
+#
+# Qualquer achado HIGH/CRITICAL bloqueia o merge (branch protection exige estes checks).
+name: DevSecOps
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    - cron: "0 6 * * 1"   # varredura semanal: CVEs novos em código que não mudou
+  workflow_dispatch:
+
+# menor privilégio: cada job pede só o que precisa
+permissions:
+  contents: read
+
+concurrency:
+  group: devsecops-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.13"
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/fordspec-api
+
+jobs:
+  # ---------------------------------------------------------------- 1
+  secrets:
+    name: 1. Secret scanning (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # varre TODO o histórico, não só o último commit
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+
+  # ---------------------------------------------------------------- 2
+  sast:
+    name: 2a. SAST (Semgrep)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write   # publica achados na aba Security (SARIF)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Semgrep (OWASP Top 10, Python, JWT, secrets, Dockerfile)
+        run: |
+          pip install --quiet semgrep
+          semgrep scan \
+            --config p/python --config p/owasp-top-ten --config p/jwt \
+            --config p/secrets --config p/dockerfile \
+            --severity ERROR --error --metrics off \
+            --sarif --output semgrep.sarif \
+            app iot scripts seed Dockerfile
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+  sast-bandit:
+    name: 2b. SAST (Bandit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Bandit (falha em severidade/confiança média ou maior)
+        run: |
+          pip install --quiet bandit==1.9.4
+          bandit -r app iot scripts seed -ll -ii
+
+  # ---------------------------------------------------------------- 3
+  sca:
+    name: 3. SCA (pip-audit + Dependency Review)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: pip-audit (falha se houver CVE conhecida)
+        run: |
+          pip install --quiet pip-audit==2.10.1
+          pip-audit -r requirements.txt --strict --desc on
+      - name: Dependency Review (bloqueia PR que introduz dependência vulnerável)
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          deny-licenses: AGPL-3.0, GPL-3.0
+          comment-summary-in-pr: on-failure
+
+  # ---------------------------------------------------------------- 4
+  test:
+    name: 4. Testes de segurança e contrato
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - name: pytest (JWT, RBAC, BOLA, validação, rate limit, cripto, IoT, backup)
+        run: pytest --cov=app --cov=iot --cov-report=xml --cov-fail-under=80 --junitxml=pytest.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-reports
+          path: |
+            pytest.xml
+            coverage.xml
+
+  # ---------------------------------------------------------------- 5
+  iac:
+    name: 5. IaC security (Checkov)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: .
+          framework: dockerfile,kubernetes,github_actions,secrets
+          skip_path: venv
+          output_format: cli,sarif
+          output_file_path: console,checkov.sarif
+          soft_fail: false
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: checkov.sarif
+          category: checkov
+
+  # ---------------------------------------------------------------- 6
+  build:
+    name: 6. Build + Container scan (Trivy) + SBOM
+    needs: [secrets, sast, sast-bandit, sca, test, iac]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build da imagem
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: fordspec-api:${{ github.sha }}
+          provenance: false
+      - name: Trivy — vulnerabilidades da imagem (bloqueia HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: fordspec-api:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: sarif
+          output: trivy.sarif
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy.sarif
+          category: trivy
+      - name: SBOM (CycloneDX)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: fordspec-api:${{ github.sha }}
+          format: cyclonedx
+          output: sbom.cdx.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.cdx.json
+      - name: Exporta imagem para o DAST
+        run: docker save fordspec-api:${{ github.sha }} -o image.tar
+      - uses: actions/upload-artifact@v4
+        with:
+          name: image
+          path: image.tar
+          retention-days: 1
+
+  # ---------------------------------------------------------------- 7
+  dast:
+    name: 7. DAST (OWASP ZAP API scan)
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: image
+      - name: Sobe a API em modo staging (segredos efêmeros de CI)
+        run: |
+          docker load -i image.tar
+          gen() { openssl rand -base64 48 | tr -d '\n'; }
+          docker run -d --name api -p 8000:8000 \
+            -e APP_ENV=staging \
+            -e DATABASE_URL=sqlite:////tmp/ci.db \
+            -e JWT_SECRET="$(gen)" -e DATA_ENC_KEYS="$(gen)" -e HMAC_SECRET="$(gen)" \
+            -e PSEUDO_SALT="$(gen)" -e METRICS_TOKEN="$(gen)" \
+            -e ALLOWED_HOSTS=localhost,127.0.0.1 \
+            --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges \
+            fordspec-api:${{ github.sha }}
+          for i in $(seq 1 30); do curl -fs http://localhost:8000/ && break; sleep 2; done
+      - name: ZAP API scan
+        uses: zaproxy/action-api-scan@v0.9.0
+        with:
+          target: http://localhost:8000/openapi.json
+          format: openapi
+          rules_file_name: .zap/rules.tsv
+          cmd_options: "-I"   # alertas WARN não quebram; regras marcadas FAIL quebram
+          allow_issue_writing: false
+      - name: Logs da API (evidência)
+        if: always()
+        run: docker logs api | tail -n 200
+
+  # ---------------------------------------------------------------- 8
+  deploy:
+    name: 8. Publica, assina e implanta
+    needs: dast
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production   # exige aprovação manual (required reviewers)
+    permissions:
+      contents: read
+      packages: write
+      id-token: write   # assinatura keyless (Sigstore/cosign via OIDC)
+    env:
+      KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v3
+      - name: Build e push
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          provenance: true
+          sbom: true
+      - uses: sigstore/cosign-installer@v3
+      - name: Assina a imagem (cosign keyless)
+        run: cosign sign --yes ${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}
+      - name: Deploy no Kubernetes (imagem fixada por digest)
+        if: env.KUBE_CONFIG != ''
+        run: |
+          echo "$KUBE_CONFIG" > kubeconfig && export KUBECONFIG=$PWD/kubeconfig
+          IMG=${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}
+          kubectl apply -f k8s/00-namespace.yaml -f k8s/04-networkpolicy.yaml
+          kubectl -n fordspec delete job fordspec-migrate --ignore-not-found
+          sed "s#ghcr.io/fordspec/fordspec-api:2.0.0#$IMG#" k8s/05-migrate-job.yaml | kubectl apply -f -
+          kubectl -n fordspec wait --for=condition=complete job/fordspec-migrate --timeout=180s
+          sed "s#ghcr.io/fordspec/fordspec-api:2.0.0#$IMG#" k8s/02-deployment.yaml | kubectl apply -f -
+          kubectl apply -f k8s/03-ingress.yaml
+          kubectl -n fordspec rollout status deploy/fordspec-api --timeout=180s
+          rm -f kubeconfig

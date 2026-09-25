@@ -1,0 +1,14 @@
+# Gitleaks: regras padrão + exceções justificadas.
+title = "FordSpec gitleaks"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Valores fictícios de teste e modelos sem segredo real"
+paths = [
+  '''tests/''',
+  '''\.env\.example''',
+  '''k8s/01-secret\.example\.yaml''',
+  '''docs_seguranca/.*\.txt''',
+]
