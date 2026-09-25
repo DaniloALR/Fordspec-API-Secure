@@ -1,25 +1,67 @@
-import os
-import hashlib
+"""Criptografia local de dados (em repouso) e privacidade (LGPD).
+
+Sprint 3:
+- Chaves vêm de DATA_ENC_KEYS (sem fallback hardcoded) e são derivadas com HKDF-SHA256.
+- MultiFernet permite rotação: a 1ª chave cifra, todas decifram; `recriptografar`
+  migra dados antigos para a chave nova.
+- `EncryptedString`: coluna SQLAlchemy cifrada/decifrada de forma transparente
+  (AES-128-CBC + HMAC-SHA256 via Fernet — confidencialidade + integridade).
+- Pseudonimização com HMAC-SHA256 (chave secreta), não apenas hash com salt.
+"""
 import base64
-from cryptography.fernet import Fernet
+import hashlib
+import hmac
 
-_secret = os.getenv("DATA_ENC_KEY", "chave-de-dados-trocar-em-producao-32b")
-_key = base64.urlsafe_b64encode(hashlib.sha256(_secret.encode()).digest())
-_fernet = Fernet(_key)
+from cryptography.fernet import Fernet, MultiFernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+from sqlalchemy.types import Text, TypeDecorator
 
-PSEUDO_SALT = os.getenv("PSEUDO_SALT", "salt-pseudonimizacao").encode()
+from app.core.config import settings
+
+
+def _derivar_chave(segredo: str) -> bytes:
+    hkdf = HKDF(algorithm=hashes.SHA256(), length=32, salt=None,
+                info=b"fordspec-data-encryption-v1")
+    return base64.urlsafe_b64encode(hkdf.derive(segredo.encode("utf-8")))
+
+
+def construir_cifrador(segredos: list[str]) -> MultiFernet:
+    return MultiFernet([Fernet(_derivar_chave(s)) for s in segredos])
+
+
+_cifrador = construir_cifrador(settings.data_enc_keys)
 
 
 def criptografar(texto: str) -> str:
-    return _fernet.encrypt(texto.encode()).decode()
+    return _cifrador.encrypt(texto.encode("utf-8")).decode("ascii")
 
 
 def descriptografar(token: str) -> str:
-    return _fernet.decrypt(token.encode()).decode()
+    return _cifrador.decrypt(token.encode("ascii")).decode("utf-8")
+
+
+def recriptografar(token: str) -> str:
+    """Re-cifra um valor com a chave primária atual (rotina de rotação de chaves)."""
+    return _cifrador.rotate(token.encode("ascii")).decode("ascii")
+
+
+class EncryptedString(TypeDecorator):
+    """Coluna de texto cifrada em repouso; a aplicação só enxerga o texto claro."""
+
+    impl = Text
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        return None if value is None else criptografar(value)
+
+    def process_result_value(self, value, dialect):
+        return None if value is None else descriptografar(value)
 
 
 def pseudonimizar(identificador: str) -> str:
-    h = hashlib.sha256(PSEUDO_SALT + identificador.encode()).hexdigest()
+    h = hmac.new(settings.pseudo_salt.encode("utf-8"),
+                 identificador.encode("utf-8"), hashlib.sha256).hexdigest()
     return "ANON_" + h[:16]
 
 
