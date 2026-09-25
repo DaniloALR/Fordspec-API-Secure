@@ -24,7 +24,7 @@
 | Correção de severidade Média/Baixa | próxima sprint |
 
 Incidentes envolvendo dados pessoais seguem o plano de resposta descrito em
-[docs_seguranca/SPRINT3_DevSecOps.md](docs_seguranca/SPRINT3_DevSecOps.md#34-plano-de-resposta-a-incidentes),
+[docs_seguranca/SPRINT3_DevSecOps.md](docs_seguranca/SPRINT3_DevSecOps.md#35-plano-de-resposta-a-incidentes),
 incluindo comunicação à ANPD e aos titulares quando exigido pela LGPD (art. 48).
 
 ## Controles automatizados

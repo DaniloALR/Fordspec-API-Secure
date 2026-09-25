@@ -21,3 +21,4 @@ infra/certs/
 *.crt
 .dev-secrets.json
 secrets/
+*.bak

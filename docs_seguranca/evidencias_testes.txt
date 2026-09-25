@@ -1,43 +1,90 @@
-============================================================
-BLOCO 2 — Autenticação e Autorização (JWT + RBAC)
-============================================================
-[PASS] Acesso sem token -> 401 (esperado 401)
-{"ts": "2026-05-23T16:32:46.383511+00:00", "tipo": "auditoria", "trace_id": null, "usuario": "analista", "acao": "login", "recurso": "/v1/auth/login"}
-[PASS] Login válido -> 200
-{"ts": "2026-05-23T16:32:46.668164+00:00", "tipo": "seguranca", "trace_id": null, "evento": "login_falha", "ip": "testclient", "detalhe": "usuario=analista"}
-[PASS] Login senha errada -> 401 | msg: Credenciais inválidas.
-{"ts": "2026-05-23T16:32:46.672679+00:00", "tipo": "auditoria", "trace_id": null, "usuario": "analista", "acao": "gerar_ficha", "recurso": "Ford/Ranger/Limited 3.0L V6 26MY"}
-[PASS] Acesso com token válido -> 201
-[PASS] Analista tenta exportar -> 403 (esperado 403)
-{"ts": "2026-05-23T16:32:46.982582+00:00", "tipo": "auditoria", "trace_id": null, "usuario": "curador", "acao": "login", "recurso": "/v1/auth/login"}
-{"ts": "2026-05-23T16:32:46.987105+00:00", "tipo": "auditoria", "trace_id": null, "usuario": "curador", "acao": "exportar_ficha", "recurso": "Ford/Ranger/Limited 3.0L V6 26MY"}
-[PASS] Curador exporta -> 200 (esperado 200)
+Evidência de testes — Sprint 3 (gerado em 2026-09-25T14:16Z)
+Comando: pytest -v --cov=app --cov=iot
 
-============================================================
-BLOCO 1 — Validação e Sanitização
-============================================================
-[PASS] Tentativa de SQL injection -> 422 (esperado 422)
-[PASS] Tentativa de XSS -> 422 (esperado 422)
-[PASS] Excesso de atributos (>50) -> 422 (esperado 422)
-
-============================================================
-BLOCO 3 — Proteção de APIs (headers + rate limit)
-============================================================
-[PASS] Header HSTS presente -> max-age=31536000; includeSubDo
-[PASS] Header X-Content-Type-Options -> nosniff
-
-============================================================
-BLOCO 4 — Dados e Privacidade
-============================================================
-[PASS] Criptografia em repouso -> gAAAAABqEdavOAC0k75wnk-O...
-[PASS] Descriptografia recupera o original
-[PASS] Pseudonimização estável e irreversível -> ANON_17c5c8534a4c8d46
-[PASS] Mascaramento de e-mail -> j********a@x.com
-
-============================================================
-BLOCO 5 — Logs e Auditoria
-============================================================
-[PASS] Trilha de auditoria (exemplo de log estruturado):
-{"ts": "2026-05-23T16:32:47.020080+00:00", "tipo": "auditoria", "trace_id": null, "usuario": "analista", "acao": "gerar_ficha", "recurso": "Ford/Ranger/Raptor"}
-{"ts": "2026-05-23T16:32:47.020237+00:00", "tipo": "seguranca", "trace_id": null, "evento": "brute_force_suspeito", "ip": "1.2.3.4", "detalhe": "5 falhas consecutivas"}
-[PASS] Monitor detecta brute force após 5 falhas -> alerta=True
+tests/test_api.py::test_health PASSED
+tests/test_api.py::test_dicionario_de_atributos PASSED
+tests/test_api.py::test_versoes_da_base_curada PASSED
+tests/test_api.py::test_gera_ficha_padronizada PASSED
+tests/test_api.py::test_versao_inexistente_422 PASSED
+tests/test_api.py::test_atributo_fora_do_dicionario_400 PASSED
+tests/test_api.py::test_exporta_csv PASSED
+tests/test_backup.py::test_backup_cifrado_e_restauravel PASSED
+tests/test_backup.py::test_backup_adulterado_detectado PASSED
+tests/test_backup.py::test_retencao PASSED
+tests/test_iot.py::test_mensagem_valida_e_localizacao_minimizada PASSED
+tests/test_iot.py::test_adulteracao_detectada PASSED
+tests/test_iot.py::test_chave_de_outro_dispositivo_nao_forja PASSED
+tests/test_iot.py::test_replay_bloqueado PASSED
+tests/test_iot.py::test_timestamp_antigo_rejeitado PASSED
+tests/test_iot.py::test_device_diferente_do_topico PASSED
+tests/test_iot.py::test_dados_invalidos[dados0-valor_fora_da_faixa] PASSED
+tests/test_iot.py::test_dados_invalidos[dados1-valor_fora_da_faixa] PASSED
+tests/test_iot.py::test_dados_invalidos[dados2-valor_fora_da_faixa] PASSED
+tests/test_iot.py::test_dados_invalidos[dados3-campos_desconhecidos] PASSED
+tests/test_iot.py::test_payload_grande_e_json_invalido PASSED
+tests/test_iot.py::test_contexto_tls_seguro PASSED
+tests/test_security.py::TestJWT::test_sem_token_401 PASSED
+tests/test_security.py::TestJWT::test_token_tem_claims_obrigatorias PASSED
+tests/test_security.py::TestJWT::test_alg_none_rejeitado PASSED
+tests/test_security.py::TestJWT::test_assinatura_com_outro_segredo_rejeitada PASSED
+tests/test_security.py::TestJWT::test_token_expirado_rejeitado PASSED
+tests/test_security.py::TestJWT::test_audiencia_errada_rejeitada PASSED
+tests/test_security.py::TestJWT::test_refresh_nao_serve_como_access PASSED
+tests/test_security.py::TestJWT::test_rotacao_e_deteccao_de_reuso_do_refresh PASSED
+tests/test_security.py::TestJWT::test_logout_revoga_sessoes PASSED
+tests/test_security.py::TestJWT::test_senha_acima_de_72_bytes_nao_gera_500 PASSED
+tests/test_security.py::TestLogin::test_mensagem_generica PASSED
+tests/test_security.py::TestLogin::test_lockout_e_desbloqueio PASSED
+tests/test_security.py::TestLogin::test_brute_force_gera_alerta PASSED
+tests/test_security.py::TestRBAC::test_matriz_de_permissoes[brigadista-GET-/v1/attributes-200] PASSED
+tests/test_security.py::TestRBAC::test_matriz_de_permissoes[brigadista-GET-/v1/specs/export?version=Limited 3.0L V6 26MY-403] PASSED
+tests/test_security.py::TestRBAC::test_matriz_de_permissoes[brigadista-GET-/v1/admin/users-403] PASSED
+tests/test_security.py::TestRBAC::test_matriz_de_permissoes[brigadista-GET-/v1/admin/audit-403] PASSED
+tests/test_security.py::TestRBAC::test_matriz_de_permissoes[gestor-GET-/v1/specs/export?version=Limited 3.0L V6 26MY-200] PASSED
+tests/test_security.py::TestRBAC::test_matriz_de_permissoes[gestor-GET-/v1/admin/audit-200] PASSED
+tests/test_security.py::TestRBAC::test_matriz_de_permissoes[gestor-GET-/v1/admin/users-403] PASSED
+tests/test_security.py::TestRBAC::test_matriz_de_permissoes[gestor-GET-/v1/admin/audit/verify-403] PASSED
+tests/test_security.py::TestRBAC::test_matriz_de_permissoes[administrador-GET-/v1/admin/users-200] PASSED
+tests/test_security.py::TestRBAC::test_matriz_de_permissoes[administrador-GET-/v1/admin/permissions/report-200] PASSED
+tests/test_security.py::TestRBAC::test_matriz_de_permissoes[administrador-GET-/v1/admin/audit/verify-200] PASSED
+tests/test_security.py::TestRBAC::test_todos_os_perfis_geram_ficha[brigadista] PASSED
+tests/test_security.py::TestRBAC::test_todos_os_perfis_geram_ficha[gestor] PASSED
+tests/test_security.py::TestRBAC::test_todos_os_perfis_geram_ficha[administrador] PASSED
+tests/test_security.py::TestRBAC::test_troca_de_perfil_invalida_tokens_imediatamente PASSED
+tests/test_security.py::TestRBAC::test_nao_remove_ultimo_administrador PASSED
+tests/test_security.py::TestRBAC::test_mass_assignment_bloqueado PASSED
+tests/test_security.py::TestRBAC::test_perfil_invalido_rejeitado PASSED
+tests/test_security.py::TestBOLA::test_brigadista_nao_le_ficha_de_outro PASSED
+tests/test_security.py::TestBOLA::test_id_malformado_rejeitado PASSED
+tests/test_security.py::TestValidacao::test_payloads_maliciosos_422[' OR 1=1 --] PASSED
+tests/test_security.py::TestValidacao::test_payloads_maliciosos_422[Raptor; DROP TABLE spec_value] PASSED
+tests/test_security.py::TestValidacao::test_payloads_maliciosos_422[<script>alert(1)</script>] PASSED
+tests/test_security.py::TestValidacao::test_payloads_maliciosos_422[$(whoami)] PASSED
+tests/test_security.py::TestValidacao::test_payloads_maliciosos_422[aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa] PASSED
+tests/test_security.py::TestValidacao::test_erro_de_validacao_nao_ecoa_entrada PASSED
+tests/test_security.py::TestValidacao::test_excesso_de_atributos PASSED
+tests/test_security.py::TestValidacao::test_curinga_like_nao_lista_tudo PASSED
+tests/test_security.py::TestValidacao::test_export_bloqueia_header_injection PASSED
+tests/test_security.py::TestValidacao::test_nome_arquivo_e_celula_csv_seguros PASSED
+tests/test_security.py::TestHardening::test_headers_de_seguranca_e_trace_id PASSED
+tests/test_security.py::TestHardening::test_rate_limit_login PASSED
+tests/test_security.py::TestHardening::test_body_grande_413 PASSED
+tests/test_security.py::TestHardening::test_body_grande_sem_content_length_413 PASSED
+tests/test_security.py::TestHardening::test_host_nao_confiavel PASSED
+tests/test_security.py::TestHardening::test_erro_500_generico PASSED
+tests/test_security.py::TestHardening::test_producao_exige_segredos PASSED
+tests/test_security.py::TestCriptografia::test_email_cifrado_no_banco_e_mascarado_na_api PASSED
+tests/test_security.py::TestCriptografia::test_rotacao_de_chave PASSED
+tests/test_security.py::TestCriptografia::test_adulteracao_detectada PASSED
+tests/test_security.py::TestCriptografia::test_pseudonimizacao PASSED
+tests/test_security.py::TestObservabilidade::test_log_estruturado_sem_segredos PASSED
+tests/test_security.py::TestObservabilidade::test_trace_id_correlaciona_logs PASSED
+tests/test_security.py::TestObservabilidade::test_cadeia_de_auditoria_detecta_adulteracao PASSED
+tests/test_security.py::TestObservabilidade::test_gestor_ve_apenas_proprias_acoes PASSED
+tests/test_security.py::TestObservabilidade::test_metricas_prometheus PASSED
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+Name                               Stmts   Miss  Cover
+------------------------------------------------------
+------------------------------------------------------
+TOTAL                               1294    134    90%
+======================= 81 passed, 6 warnings in 42.39s =======================

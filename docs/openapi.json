@@ -1,12 +1,9 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "FordSpec AI — API",
-    "description": "API REST do Desafio 01 (Inteligência Competitiva Automotiva). Recebe Marca + Modelo + Versão + atributos e devolve uma ficha técnica padronizada a partir de uma base curada, com regras determinísticas (zero alucinação). Campos inexistentes saem como 'ND'.",
-    "contact": {
-      "name": "Equipe FordSpec — FIAP"
-    },
-    "version": "1.0.0"
+    "title": "FordSpec AI — API (DevSecOps)",
+    "description": "API do Desafio 01 com segurança contínua (Sprint 3 — DevSecOps).",
+    "version": "2.0.0"
   },
   "paths": {
     "/": {
@@ -28,13 +25,133 @@
         }
       }
     },
+    "/v1/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Autentica e retorna access + refresh token",
+        "operationId": "login_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/refresh": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Rotaciona o refresh token e emite novo par de tokens",
+        "operationId": "refresh_v1_auth_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/logout": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Encerra todas as sessões do usuário (revoga access e refresh)",
+        "operationId": "logout_v1_auth_logout_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/auth/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Retorna o usuário autenticado e suas permissões",
+        "operationId": "me_v1_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/v1/attributes": {
       "get": {
         "tags": [
           "catalog & vehicles"
         ],
-        "summary": "Lista o dicionário de atributos (13 categorias)",
-        "description": "catalog-service — retorna os ~244 atributos padronizados.",
+        "summary": "Lista o dicionário de atributos (14 categorias)",
         "operationId": "list_attributes_v1_attributes_get",
         "responses": {
           "200": {
@@ -51,7 +168,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/v1/vehicles": {
@@ -60,8 +182,12 @@
           "catalog & vehicles"
         ],
         "summary": "Lista versões disponíveis na base curada",
-        "description": "vehicle-service — versões curadas para a marca/modelo informados.",
         "operationId": "list_vehicles_v1_vehicles_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "brand",
@@ -69,6 +195,7 @@
             "required": true,
             "schema": {
               "type": "string",
+              "maxLength": 60,
               "examples": [
                 "Ford"
               ],
@@ -82,7 +209,8 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "type": "string",
+                  "maxLength": 60
                 },
                 {
                   "type": "null"
@@ -128,14 +256,13 @@
         "tags": [
           "specs"
         ],
-        "summary": "Gera a ficha técnica padronizada",
-        "description": "spec-service — recebe Marca + Modelo + Versão + atributos (livre)\ne devolve a ficha no formato padronizado.",
+        "summary": "Gera a ficha técnica padronizada (brigadista, gestor, administrador)",
         "operationId": "create_spec_v1_specs_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SpecRequestIn"
+                "$ref": "#/components/schemas/SecureSpecRequestIn"
               }
             }
           },
@@ -162,6 +289,79 @@
               }
             }
           }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/specs/export": {
+      "get": {
+        "tags": [
+          "specs"
+        ],
+        "summary": "Exporta a ficha no formato BASE (CSV) — gestor/administrador",
+        "operationId": "export_spec_v1_specs_export_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "brand",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 60,
+              "default": "Ford",
+              "title": "Brand"
+            }
+          },
+          {
+            "name": "model",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 60,
+              "default": "Ranger",
+              "title": "Model"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 120,
+              "title": "Version"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -170,8 +370,13 @@
         "tags": [
           "specs"
         ],
-        "summary": "Recupera os metadados de uma ficha gerada",
+        "summary": "Recupera os metadados de uma ficha gerada (dono ou gestor/admin)",
         "operationId": "get_spec_v1_specs__request_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "request_id",
@@ -179,6 +384,7 @@
             "required": true,
             "schema": {
               "type": "string",
+              "pattern": "^[0-9a-fA-F-]{36}$",
               "title": "Request Id"
             }
           }
@@ -205,42 +411,153 @@
         }
       }
     },
-    "/v1/specs/export": {
+    "/v1/admin/users": {
       "get": {
         "tags": [
-          "specs"
+          "admin & auditoria"
         ],
-        "summary": "Exporta a ficha no formato BASE (CSV)",
-        "description": "export-service — gera CSV no layout do data sheet (Categoria; Atributo; Valor).",
-        "operationId": "export_spec_v1_specs_export_get",
+        "summary": "Lista usuários (e-mail mascarado) — administrador",
+        "operationId": "list_users_v1_admin_users_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "admin & auditoria"
+        ],
+        "summary": "Cria usuário — administrador",
+        "operationId": "create_user_v1_admin_users_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/admin/users/{username}/role": {
+      "patch": {
+        "tags": [
+          "admin & auditoria"
+        ],
+        "summary": "Altera o perfil (alteração crítica)",
+        "operationId": "change_role_v1_admin_users__username__role_patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
-            "name": "brand",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "Ford",
-              "title": "Brand"
-            }
-          },
-          {
-            "name": "model",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "Ranger",
-              "title": "Model"
-            }
-          },
-          {
-            "name": "version",
-            "in": "query",
+            "name": "username",
+            "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Version"
+              "minLength": 3,
+              "maxLength": 40,
+              "pattern": "^[a-zA-Z0-9_.@-]+$",
+              "title": "Username"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleUpdateIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/users/{username}/deactivate": {
+      "post": {
+        "tags": [
+          "admin & auditoria"
+        ],
+        "summary": "Desativa usuário e revoga sessões",
+        "operationId": "deactivate_v1_admin_users__username__deactivate_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 40,
+              "pattern": "^[a-zA-Z0-9_.@-]+$",
+              "title": "Username"
             }
           }
         ],
@@ -264,6 +581,150 @@
             }
           }
         }
+      }
+    },
+    "/v1/admin/users/{username}/unlock": {
+      "post": {
+        "tags": [
+          "admin & auditoria"
+        ],
+        "summary": "Desbloqueia conta após lockout",
+        "operationId": "unlock_v1_admin_users__username__unlock_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 40,
+              "pattern": "^[a-zA-Z0-9_.@-]+$",
+              "title": "Username"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/permissions/report": {
+      "get": {
+        "tags": [
+          "admin & auditoria"
+        ],
+        "summary": "Auditoria de permissões: matriz perfil × permissão e usuários",
+        "operationId": "permissions_report_v1_admin_permissions_report_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/admin/audit": {
+      "get": {
+        "tags": [
+          "admin & auditoria"
+        ],
+        "summary": "Trilha de auditoria (gestor vê só as próprias ações)",
+        "operationId": "audit_v1_admin_audit_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/audit/verify": {
+      "get": {
+        "tags": [
+          "admin & auditoria"
+        ],
+        "summary": "Verifica a integridade da cadeia de auditoria",
+        "operationId": "audit_verify_v1_admin_audit_verify_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     }
   },
@@ -310,6 +771,107 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "LoginIn": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 3,
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 72,
+            "minLength": 6,
+            "title": "Password"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "LoginIn"
+      },
+      "RefreshIn": {
+        "properties": {
+          "refresh_token": {
+            "type": "string",
+            "maxLength": 2048,
+            "minLength": 20,
+            "title": "Refresh Token"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "refresh_token"
+        ],
+        "title": "RefreshIn"
+      },
+      "RoleUpdateIn": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "title": "Role"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "role"
+        ],
+        "title": "RoleUpdateIn"
+      },
+      "SecureSpecRequestIn": {
+        "properties": {
+          "brand": {
+            "type": "string",
+            "title": "Brand",
+            "examples": [
+              "Ford"
+            ]
+          },
+          "model": {
+            "type": "string",
+            "title": "Model",
+            "examples": [
+              "Ranger"
+            ]
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "examples": [
+              "Limited 3.0L V6 26MY"
+            ]
+          },
+          "attributes": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 50
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attributes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "brand",
+          "model",
+          "version"
+        ],
+        "title": "SecureSpecRequestIn"
       },
       "SpecItem": {
         "properties": {
@@ -361,60 +923,6 @@
         ],
         "title": "SpecItem"
       },
-      "SpecRequestIn": {
-        "properties": {
-          "brand": {
-            "type": "string",
-            "title": "Brand",
-            "examples": [
-              "Ford"
-            ]
-          },
-          "model": {
-            "type": "string",
-            "title": "Model",
-            "examples": [
-              "Ranger"
-            ]
-          },
-          "version": {
-            "type": "string",
-            "title": "Version",
-            "examples": [
-              "Limited 3.0L V6 26MY"
-            ]
-          },
-          "attributes": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Attributes",
-            "description": "Lista livre de atributos. Se vazia, retorna a ficha completa.",
-            "examples": [
-              [
-                "Potência",
-                "Torque",
-                "Tração"
-              ]
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "brand",
-          "model",
-          "version"
-        ],
-        "title": "SpecRequestIn"
-      },
       "SpecSheet": {
         "properties": {
           "id": {
@@ -451,6 +959,49 @@
           "items"
         ],
         "title": "SpecSheet"
+      },
+      "UserCreateIn": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 3,
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 72,
+            "minLength": 12,
+            "title": "Password"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role",
+            "examples": [
+              "brigadista"
+            ]
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 254
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "username",
+          "password",
+          "role"
+        ],
+        "title": "UserCreateIn"
       },
       "ValidationError": {
         "properties": {
@@ -514,6 +1065,12 @@
           "version"
         ],
         "title": "VehicleOut"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
       }
     }
   }
