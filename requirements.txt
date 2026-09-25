@@ -1,10 +1,15 @@
-fastapi==0.115.0
-uvicorn[standard]==0.30.6
-sqlalchemy==2.0.35
-pydantic==2.9.2
-alembic==1.13.3
-psycopg2-binary==2.9.9
-python-dotenv==1.0.1
-python-jose[cryptography]==3.3.0
+# Dependências de runtime — versões fixadas (pin) e auditadas com pip-audit.
+# Sprint 3: python-jose (CVE-2024-33663/33664, sem manutenção) substituído por PyJWT;
+# cryptography, starlette/fastapi e python-dotenv atualizados para versões corrigidas.
+fastapi==0.141.1
+uvicorn[standard]==0.54.0
+sqlalchemy==2.0.54
+pydantic==2.13.5
+alembic==1.20.0
+psycopg2-binary==2.9.13
+python-dotenv==1.2.3
+PyJWT==2.15.0
 bcrypt==5.0.0
-cryptography==43.0.1
+cryptography==50.0.1
+paho-mqtt==2.1.0
+prometheus-client==0.26.0
