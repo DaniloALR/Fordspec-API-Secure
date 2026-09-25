@@ -25,8 +25,21 @@ class InsecureConfigError(RuntimeError):
     pass
 
 
+def ler_env(name: str, default: str = "") -> str:
+    """Lê NAME ou, se NAME_FILE estiver definido, o conteúdo desse arquivo.
+
+    Permite montar segredos como arquivos (Kubernetes/Docker secrets) em vez de
+    variáveis de ambiente, que vazam em `ps e`, dumps e logs de crash.
+    """
+    caminho = os.getenv(f"{name}_FILE")
+    if caminho:
+        with open(caminho, encoding="utf-8") as f:
+            return f.read().strip()
+    return os.getenv(name, default)
+
+
 def _env_list(name: str, default: str) -> list[str]:
-    return [v.strip() for v in os.getenv(name, default).split(",") if v.strip()]
+    return [v.strip() for v in ler_env(name, default).split(",") if v.strip()]
 
 
 DEV_SECRETS_FILE = os.getenv("DEV_SECRETS_FILE", ".dev-secrets.json")
@@ -51,7 +64,7 @@ def _segredo_dev(name: str) -> str:
 
 
 def _secret(name: str, is_prod: bool) -> str:
-    valor = os.getenv(name, "")
+    valor = ler_env(name)
     if len(valor) >= MIN_SECRET_LEN:
         return valor
     if is_prod:
@@ -104,7 +117,7 @@ def load_settings() -> Settings:
     if not enc_keys or any(len(k) < MIN_SECRET_LEN for k in enc_keys):
         enc_keys = [_secret("DATA_ENC_KEYS", is_prod)]
 
-    metrics_token = os.getenv("METRICS_TOKEN") or None
+    metrics_token = ler_env("METRICS_TOKEN") or None
     if is_prod and not metrics_token:
         raise InsecureConfigError("METRICS_TOKEN é obrigatório em produção.")
 

@@ -20,3 +20,4 @@ infra/certs/
 *.key
 *.crt
 .dev-secrets.json
+secrets/

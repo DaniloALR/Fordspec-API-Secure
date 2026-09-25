@@ -1,0 +1,26 @@
+# Nada de segredos, dados locais, ambientes virtuais ou histórico git na imagem
+.git
+.github
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+.coverage
+*.db
+*.sqlite
+.env
+.env.*
+.dev-secrets.json
+secrets/
+backups/
+logs/
+infra/certs/
+*.pem
+*.key
+*.crt
+tests/
+docs/
+docs_seguranca/
+k8s/
+observability/

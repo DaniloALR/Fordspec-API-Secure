@@ -1,0 +1,52 @@
+# Migrações Alembic rodam como Job separado, antes do rollout (a API em produção
+# não altera schema). Mesmo contexto de segurança restrito da API.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fordspec-migrate
+  namespace: fordspec
+  annotations:
+    checkov.io/skip1: CKV_K8S_43=digest injetado pelo pipeline
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels: {app: fordspec-migrate}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: migrate
+          image: ghcr.io/fordspec/fordspec-api:2.0.0
+          imagePullPolicy: Always
+          command: ["alembic", "upgrade", "head"]
+          env:
+            - {name: APP_ENV, value: production}
+            # a config de produção exige todos os segredos (mesmo padrão NOME_FILE da API)
+            - {name: JWT_SECRET_FILE, value: /run/secrets/fordspec/JWT_SECRET}
+            - {name: DATA_ENC_KEYS_FILE, value: /run/secrets/fordspec/DATA_ENC_KEYS}
+            - {name: HMAC_SECRET_FILE, value: /run/secrets/fordspec/HMAC_SECRET}
+            - {name: PSEUDO_SALT_FILE, value: /run/secrets/fordspec/PSEUDO_SALT}
+            - {name: METRICS_TOKEN_FILE, value: /run/secrets/fordspec/METRICS_TOKEN}
+            - {name: DATABASE_URL_FILE, value: /run/secrets/fordspec/DATABASE_URL}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+          volumeMounts:
+            - {name: secrets, mountPath: /run/secrets/fordspec, readOnly: true}
+      volumes:
+        - name: secrets
+          secret:
+            secretName: fordspec-api-secrets
+            defaultMode: 0440

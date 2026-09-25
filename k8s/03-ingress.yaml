@@ -1,0 +1,30 @@
+# Entrada HTTPS única. TLS terminado no ingress com certificado do cert-manager;
+# HTTP é redirecionado. Limites extras de corpo/taxa na borda (defesa em camadas).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fordspec-api
+  namespace: fordspec
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "16k"
+    nginx.ingress.kubernetes.io/limit-rps: "20"
+    nginx.ingress.kubernetes.io/enable-modsecurity: "true"
+    nginx.ingress.kubernetes.io/enable-owasp-core-rules: "true"
+    # /metrics não é roteado para fora: exige token e a NetworkPolicy só libera o
+    # Prometheus. (Snippets de configuração NGINX foram evitados: CVE-2021-25742.)
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [api.fordspec.example]
+      secretName: fordspec-api-tls
+  rules:
+    - host: api.fordspec.example
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: {name: fordspec-api, port: {name: http}}

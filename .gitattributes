@@ -1,0 +1,4 @@
+# Finais de linha LF (scripts e configs rodam em containers Linux)
+* text=auto eol=lf
+*.png binary
+*.jpg binary
