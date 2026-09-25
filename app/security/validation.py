@@ -1,10 +1,14 @@
 import re
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.security.auth import BCRYPT_MAX_BYTES, ROLES
 
 MAX_TEXT_LEN = 120
 MAX_ATTRS = 50
 
 SAFE_TEXT = re.compile(r"^[\w\sÀ-ÿ.,()/+\-]{1,120}$", re.UNICODE)
+USERNAME_RE = re.compile(r"^[a-zA-Z0-9_.@-]{3,40}$")
+EMAIL_RE = re.compile(r"^[^@\s]{1,64}@[^@\s]{1,190}\.[a-zA-Z]{2,}$")
 
 INJECTION_PATTERNS = re.compile(
     r"(--|;|/\*|\*/|<script|</script|\bUNION\b|\bSELECT\b|\bDROP\b|\bINSERT\b|"
@@ -26,7 +30,20 @@ def sanitizar_texto(valor: str, campo: str) -> str:
     return valor
 
 
-class SecureSpecRequestIn(BaseModel):
+def _validar_senha_forte(v: str) -> str:
+    if len(v.encode("utf-8")) > BCRYPT_MAX_BYTES:
+        raise ValueError(f"Senha excede {BCRYPT_MAX_BYTES} bytes.")
+    if len(v) < 12 or not re.search(r"[A-Za-z]", v) or not re.search(r"\d", v):
+        raise ValueError("Senha deve ter ao menos 12 caracteres, com letras e números.")
+    return v
+
+
+class _Estrito(BaseModel):
+    # rejeita campos desconhecidos (mass assignment — OWASP API3:2023)
+    model_config = ConfigDict(extra="forbid")
+
+
+class SecureSpecRequestIn(_Estrito):
     brand: str = Field(..., examples=["Ford"])
     model: str = Field(..., examples=["Ranger"])
     version: str = Field(..., examples=["Limited 3.0L V6 26MY"])
@@ -47,13 +64,69 @@ class SecureSpecRequestIn(BaseModel):
         return [sanitizar_texto(a, "attribute") for a in v]
 
 
-class LoginIn(BaseModel):
+class LoginIn(_Estrito):
     username: str = Field(..., min_length=3, max_length=40)
     password: str = Field(..., min_length=6, max_length=72)
 
     @field_validator("username")
     @classmethod
     def _val_user(cls, v):
-        if not re.match(r"^[a-zA-Z0-9_.@-]+$", v):
+        if not USERNAME_RE.match(v):
             raise ValueError("Usuário contém caracteres inválidos.")
+        return v
+
+    @field_validator("password")
+    @classmethod
+    def _val_pwd(cls, v):
+        # bcrypt só considera 72 BYTES; caracteres acentuados ocupam 2+ bytes
+        if len(v.encode("utf-8")) > BCRYPT_MAX_BYTES:
+            raise ValueError(f"Senha excede {BCRYPT_MAX_BYTES} bytes.")
+        return v
+
+
+class RefreshIn(_Estrito):
+    refresh_token: str = Field(..., min_length=20, max_length=2048)
+
+
+class UserCreateIn(_Estrito):
+    username: str = Field(..., min_length=3, max_length=40)
+    password: str = Field(..., min_length=12, max_length=72)
+    role: str = Field(..., examples=["brigadista"])
+    email: str | None = Field(default=None, max_length=254)
+
+    @field_validator("username")
+    @classmethod
+    def _val_user(cls, v):
+        if not USERNAME_RE.match(v):
+            raise ValueError("Usuário contém caracteres inválidos.")
+        return v
+
+    @field_validator("password")
+    @classmethod
+    def _val_pwd(cls, v):
+        return _validar_senha_forte(v)
+
+    @field_validator("role")
+    @classmethod
+    def _val_role(cls, v):
+        if v not in ROLES:
+            raise ValueError(f"Perfil deve ser um de: {', '.join(ROLES)}.")
+        return v
+
+    @field_validator("email")
+    @classmethod
+    def _val_email(cls, v):
+        if v is not None and not EMAIL_RE.match(v):
+            raise ValueError("E-mail inválido.")
+        return v
+
+
+class RoleUpdateIn(_Estrito):
+    role: str
+
+    @field_validator("role")
+    @classmethod
+    def _val_role(cls, v):
+        if v not in ROLES:
+            raise ValueError(f"Perfil deve ser um de: {', '.join(ROLES)}.")
         return v

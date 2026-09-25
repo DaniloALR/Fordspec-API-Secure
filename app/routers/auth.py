@@ -1,57 +1,33 @@
-from fastapi import APIRouter, Request, HTTPException, Depends
-from app.security.auth import (
-    hash_password, verify_password, create_access_token, create_refresh_token,
-    decode_token,
-)
-from app.security.rbac import get_current_user
-from app.security.validation import LoginIn
-from app.security.audit import log_auditoria, log_evento_seguranca, monitor
-from jose import JWTError
+from fastapi import APIRouter, Depends, Request
+from sqlalchemy.orm import Session
+
+from app.db.database import get_db
+from app.security.rbac import PERMISSIONS, get_current_user
+from app.security.validation import LoginIn, RefreshIn
+from app.services.auth_service import AuthService
 
 router = APIRouter(prefix="/v1/auth", tags=["auth"])
-
-USERS = {
-    "analista":  {"senha_hash": hash_password("senha-analista"), "role": "analista"},
-    "curador":   {"senha_hash": hash_password("senha-curador"),  "role": "curador"},
-    "admin":     {"senha_hash": hash_password("senha-admin"),    "role": "admin"},
-}
+auth_service = AuthService()
 
 
 @router.post("/login", summary="Autentica e retorna access + refresh token")
-def login(payload: LoginIn, request: Request):
+def login(payload: LoginIn, request: Request, db: Session = Depends(get_db)):
     ip = request.client.host if request.client else "unknown"
-    user = USERS.get(payload.username)
-    if not user or not verify_password(payload.password, user["senha_hash"]):
-        # monitora tentativas repetidas (possível brute force)
-        monitor.registrar_falha(ip)
-        log_evento_seguranca("login_falha", ip, f"usuario={payload.username}")
-        # mensagem genérica — não revela se o usuário existe
-        raise HTTPException(status_code=401, detail="Credenciais inválidas.")
-    monitor.resetar(ip)
-    log_auditoria(payload.username, "login", "/v1/auth/login")
-    return {
-        "access_token": create_access_token(payload.username, user["role"]),
-        "refresh_token": create_refresh_token(payload.username, user["role"]),
-        "token_type": "bearer",
-        "role": user["role"],
-    }
+    return auth_service.login(db, payload.username, payload.password, ip)
 
 
-@router.post("/refresh", summary="Renova o access token a partir do refresh token")
-def refresh(body: dict):
-    token = body.get("refresh_token", "")
-    try:
-        payload = decode_token(token)
-        if payload.get("type") != "refresh":
-            raise HTTPException(status_code=401, detail="Token inválido.")
-        return {
-            "access_token": create_access_token(payload["sub"], payload["role"]),
-            "token_type": "bearer",
-        }
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Refresh token inválido ou expirado.")
+@router.post("/refresh", summary="Rotaciona o refresh token e emite novo par de tokens")
+def refresh(body: RefreshIn, db: Session = Depends(get_db)):
+    return auth_service.refresh(db, body.refresh_token)
 
 
-@router.get("/me", summary="Retorna o usuário autenticado")
+@router.post("/logout", status_code=204,
+             summary="Encerra todas as sessões do usuário (revoga access e refresh)")
+def logout(user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    auth_service.logout(db, user["sub"])
+
+
+@router.get("/me", summary="Retorna o usuário autenticado e suas permissões")
 def me(user: dict = Depends(get_current_user)):
-    return user
+    return {"sub": user["sub"], "role": user["role"],
+            "permissions": sorted(PERMISSIONS[user["role"]])}
