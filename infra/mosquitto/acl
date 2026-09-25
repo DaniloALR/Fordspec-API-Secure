@@ -1,0 +1,11 @@
+# ACL do broker — princípio do menor privilégio.
+# %u = CN do certificado do cliente (device_id).
+
+# Cada veículo/dispositivo só publica a PRÓPRIA telemetria e só lê os PRÓPRIOS comandos.
+pattern write fordspec/telemetry/%u/data
+pattern read fordspec/commands/%u
+
+# Serviço de ingestão: lê telemetria de todos, não publica telemetria.
+user ingest-service
+topic read fordspec/telemetry/+/data
+topic write fordspec/commands/#
