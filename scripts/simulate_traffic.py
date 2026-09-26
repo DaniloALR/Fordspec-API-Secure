@@ -98,6 +98,9 @@ def main():
             ataque_escalonamento(c, h)
             ataque_token_forjado(c)
             ataque_reuso_refresh(c, user, senha)
+            # brute force em janela própria: os logins acima consomem o limite de
+            # 5/min por IP e os chutes receberiam 429 antes de chegar ao detector
+            time.sleep(61)
             ataque_brute_force(c)
             ataque_flood(c, h)
             print(f"[simulação] ciclo {ciclo + 1}/{a.ciclos} concluído")
