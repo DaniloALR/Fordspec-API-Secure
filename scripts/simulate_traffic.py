@@ -1,10 +1,3 @@
-"""Gera tráfego legítimo e ataques simulados para popular dashboards e alertas.
-
-Use SOMENTE contra o seu ambiente local (docker compose).
-
-  python -m scripts.simulate_traffic --url http://localhost:8000 --ciclos 3
-Credenciais: SIM_USER / SIM_PASSWORD (um usuário brigadista válido).
-"""
 import argparse
 import os
 import secrets
@@ -52,7 +45,6 @@ def ataque_token_forjado(c):
 
 
 def ataque_reuso_refresh(c, user, senha):
-    """Sessão roubada: o refresh já usado é reapresentado (derruba as sessões)."""
     r = c.post("/v1/auth/login", json={"username": user, "password": senha})
     if r.status_code != 200:
         return
@@ -62,12 +54,10 @@ def ataque_reuso_refresh(c, user, senha):
 
 
 def _senha_aleatoria() -> str:
-    # nunca literal no código (o Gitleaks barrou a 1ª versão com senha fixa)
     return "Sim-" + secrets.token_urlsafe(16) + "9"
 
 
 def alteracao_critica(c, admin, senha_admin, ciclo):
-    """Administrador cria um usuário e altera o perfil dele (evento auditado)."""
     h = _login(c, admin, senha_admin)
     nome = f"sim.usuario{ciclo}"
     c.post("/v1/admin/users", headers=h, json={
@@ -98,13 +88,11 @@ def main():
             ataque_escalonamento(c, h)
             ataque_token_forjado(c)
             ataque_reuso_refresh(c, user, senha)
-            # brute force em janela própria: os logins acima consomem o limite de
-            # 5/min por IP e os chutes receberiam 429 antes de chegar ao detector
             time.sleep(61)
             ataque_brute_force(c)
             ataque_flood(c, h)
             print(f"[simulação] ciclo {ciclo + 1}/{a.ciclos} concluído")
-            time.sleep(61)  # janela do rate limit
+            time.sleep(61)
 
 
 if __name__ == "__main__":

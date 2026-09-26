@@ -1,5 +1,3 @@
-# Roteamento de alertas. Críticos vão para o plantão de segurança; a URL do
-# webhook (Teams/Slack/PagerDuty) vem de secret, não deste arquivo.
 route:
   receiver: time-devsecops
   group_by: [alertname, severity]

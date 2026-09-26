@@ -1,5 +1,3 @@
-# Migrações Alembic rodam como Job separado, antes do rollout (a API em produção
-# não altera schema). Mesmo contexto de segurança restrito da API.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -29,10 +27,8 @@ spec:
           command: ["alembic", "upgrade", "head"]
           env:
             - {name: APP_ENV, value: production}
-            # a config de produção exige todos os segredos (mesmo padrão NOME_FILE da API)
             - {name: JWT_SECRET_FILE, value: /run/secrets/fordspec/JWT_SECRET}
             - {name: DATA_ENC_KEYS_FILE, value: /run/secrets/fordspec/DATA_ENC_KEYS}
-            - {name: HMAC_SECRET_FILE, value: /run/secrets/fordspec/HMAC_SECRET}
             - {name: PSEUDO_SALT_FILE, value: /run/secrets/fordspec/PSEUDO_SALT}
             - {name: METRICS_TOKEN_FILE, value: /run/secrets/fordspec/METRICS_TOKEN}
             - {name: DATABASE_URL_FILE, value: /run/secrets/fordspec/DATABASE_URL}

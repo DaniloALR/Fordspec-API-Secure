@@ -1,4 +1,3 @@
-"""Sprint 3 — usuários persistidos, trilha de auditoria encadeada e dono da ficha."""
 from alembic import op
 import sqlalchemy as sa
 
@@ -14,7 +13,7 @@ def upgrade():
         sa.Column("username", sa.String(40), nullable=False),
         sa.Column("password_hash", sa.String(100), nullable=False),
         sa.Column("role", sa.String(20), nullable=False),
-        sa.Column("email", sa.Text),  # cifrado pela aplicação (Fernet)
+        sa.Column("email", sa.Text),
         sa.Column("is_active", sa.Boolean, nullable=False, server_default=sa.true()),
         sa.Column("failed_attempts", sa.Integer, nullable=False, server_default="0"),
         sa.Column("locked_until", sa.DateTime),

@@ -4,7 +4,7 @@
 **Grupo:** Danilo Affonso Luz Rios (RM 554791) · Thiago Feltrin Geraldes (RM 555805) · Lucca Natario do Vale (RM 95688)
 **Versão da solução:** 2.0.0 (Sprint 3), evolução da 1.1.0 (Sprint 2)
 
-**Repositório:** <https://github.com/DaniloALR/Fordspec-api-secure> (pipeline em *Actions*)
+**Repositório:** <https://github.com/DaniloALR/Fordspec-API-Secure> (pipeline em *Actions*)
 
 > Este documento consolida as quatro subetapas da Sprint 3. Cada seção aponta para o
 > código, a configuração e o commit que a comprovam. Todas as evidências foram
@@ -93,7 +93,7 @@ flowchart LR
 
 ## 1. Pipeline DevSecOps integrado (peso 3,0)
 
-**Arquivo:** [`.github/workflows/devsecops.yml`](../.github/workflows/devsecops.yml) · **Commit:** `5777ab1`
+**Arquivo:** [`.github/workflows/devsecops.yml`](../.github/workflows/devsecops.yml) · **Commit:** `8057a5d`
 
 ### 1.1 Desenho do pipeline
 
@@ -143,9 +143,9 @@ flowchart LR
 
 1. **Secret scanning.** Na Sprint 2, `app/security/auth.py` tinha `SECRET_KEY = os.getenv("JWT_SECRET", "troque-este-segredo-em-producao-32+chars")` e `app/routers/auth.py` guardava senhas em texto claro (`hash_password("senha-admin")`). Se a variável não fosse definida em produção, **qualquer pessoa que lesse o repositório conseguia forjar um token de administrador**. O Gitleaks (com histórico completo e `fetch-depth: 0`) e a regra `p/secrets` do Semgrep barram esse tipo de commit, e o `pre-commit` o bloqueia ainda na máquina do desenvolvedor.
 2. **SAST.** O Bandit rodou no código antigo e no novo (`bandit_ANTES.txt` / `bandit_DEPOIS.txt`). Ele **não** detectou as senhas hardcoded, que ficavam dentro de chamadas de função. Por isso o pipeline combina Bandit com Semgrep e Gitleaks: uma ferramenta cobre o ponto cego da outra.
-3. **SCA.** Executado: `pip-audit` no `requirements.txt` da Sprint 2 encontrou **33 vulnerabilidades em 5 pacotes** (`python-jose` com PYSEC-2024-232/233, `cryptography`, `starlette`, `python-dotenv` e `ecdsa`). Depois da atualização: **"No known vulnerabilities found"** (`pip_audit_ANTES.txt` / `pip_audit_DEPOIS.txt`, commit `7850567`). A falha em `python-jose` permitia confusão de algoritmo e DoS por token JWE comprimido, o que afeta diretamente a autenticação.
+3. **SCA.** Executado: `pip-audit` no `requirements.txt` da Sprint 2 encontrou **33 vulnerabilidades em 5 pacotes** (`python-jose` com PYSEC-2024-232/233, `cryptography`, `starlette`, `python-dotenv` e `ecdsa`). Depois da atualização: **"No known vulnerabilities found"** (`pip_audit_ANTES.txt` / `pip_audit_DEPOIS.txt`, commit `11f6502`). A falha em `python-jose` permitia confusão de algoritmo e DoS por token JWE comprimido, o que afeta diretamente a autenticação.
 4. **Testes de segurança como gate.** Cada controle da seção 2 tem teste automatizado: `alg: none` rejeitado, token com outro segredo rejeitado, `aud` errado, reuso de refresh token, BOLA, mass assignment, 413 com corpo *chunked*, cadeia de auditoria adulterada, replay MQTT etc. Se alguém remover um controle, o pipeline quebra.
-5. **IaC.** Executado localmente: o Checkov encontrou **7 falhas** na primeira versão dos manifests, todas corrigidas (commit `eebeb93`): uso de snippet NGINX (CVE-2021-25742), segredos como variáveis de ambiente, `imagePullPolicy`, tag da imagem base e digest de imagem. Resultado final: 182 + 53 + 208 verificações, **0 falhas** (`checkov_DEPOIS.txt`).
+5. **IaC.** Executado localmente: o Checkov encontrou **7 falhas** na primeira versão dos manifests, todas corrigidas (commit `47c92fb`): uso de snippet NGINX (CVE-2021-25742), segredos como variáveis de ambiente, `imagePullPolicy`, tag da imagem base e digest de imagem. Resultado final: 182 + 53 + 208 verificações, **0 falhas** (`checkov_DEPOIS.txt`).
 6. **Container.** O Trivy impede publicar uma imagem com CVE HIGH/CRITICAL corrigível. O SBOM CycloneDX guarda o inventário exato de cada build, o que responde em minutos à pergunta "estamos afetados pela CVE X?" (OWASP API9, gestão de inventário).
 7. **DAST.** O ZAP ataca a API em execução, dentro de um container `--read-only --cap-drop ALL`, a partir do contrato OpenAPI. Isso encontra problemas que só aparecem em runtime, como header ausente ou CRLF injection.
 8. **Deploy assinado.** A imagem é assinada com cosign (Sigstore, sem chave longa para vazar) e implantada **por digest**, então o cluster roda exatamente o artefato que passou pelas etapas 1 a 7.
@@ -188,7 +188,7 @@ flowchart LR
 | Bandit antes/depois | **executado** (0 issues médias/altas; 1 falso positivo documentado com `nosec`) | `bandit_ANTES.txt`, `bandit_DEPOIS.txt` |
 | Checkov | **executado** (7 falhas → 0) | `checkov_DEPOIS.txt` |
 | pytest + cobertura | **executado** (81 passed, 90%) | `evidencias_testes.txt` |
-| Pipeline completo no GitHub Actions | **executado**: jobs 1–7 verdes; job 8 aguardando aprovação no ambiente `production` | [run #19](https://github.com/DaniloALR/Fordspec-api-secure/actions/runs/36251371582) |
+| Pipeline completo no GitHub Actions | **executado**: jobs 1–7 verdes; job 8 aguardando aprovação no ambiente `production` | [execuções do workflow DevSecOps](https://github.com/DaniloALR/Fordspec-API-Secure/actions/workflows/devsecops.yml) |
 | OWASP ZAP (DAST) | **executado**: 78 URLs, **118 regras PASS, 0 WARN, 0 FAIL** | log do job 7 |
 | Code scanning (SARIF) | **executado**: 0 alertas abertos; 3 do Trivy corrigidos; 2 do Checkov aceitos com justificativa | aba *Security* |
 
@@ -203,15 +203,16 @@ manual tinha pegado. Cada um virou um commit de correção (histórico em 2.7):
 
 | # | Etapa que detectou | Achado | Correção |
 |---|--------------------|--------|----------|
-| 1 | **Dependabot** (alerta crítico) | `aquasecurity/trivy-action` < 0.35.0 teve a cadeia de suprimentos comprometida ([GHSA-69fq-xp46-6x23](https://github.com/advisories/GHSA-69fq-xp46-6x23)); a tag `0.28.0` usada no pipeline nem existia mais | actions de terceiros **fixadas por SHA de commit** (trivy v0.36.0, zap, cosign, checkov); alerta marcado como *fixed* (`c020218`) |
-| 2 | **Trivy** (bloqueou o build) | `setuptools 70.3.0` (CVE-2025-47273, HIGH, path traversal) e `msgpack 1.1.2` vendorizado no pip (GHSA-6v7p-g79w-8964, HIGH) na imagem | pip/setuptools/ensurepip removidos da imagem final, pois o runtime não instala pacotes (`b0f453d`) |
-| 3 | **OWASP ZAP** | a 1ª varredura recebeu **429** na maior parte das rotas: o próprio rate limit cegava o DAST (falso negativo) | limites relaxados **só** no container efêmero de CI (`a53673a`) |
-| 4 | **OWASP ZAP** | header `Cross-Origin-Resource-Policy` ausente (regra 90004) | header adicionado, testado e promovido a regra FAIL (`a53673a`) |
-| 5 | **Gitleaks** | senha literal no simulador de ataques (valor fictício, mas era credencial *hardcoded*) | senha aleatória; ocorrência histórica registrada em `.gitleaksignore` com justificativa (`9b8291c`) |
-| 6 | **Gitleaks** (falha da ferramenta) | `gitleaks-action@v2` quebra no 1º push de um repositório | CLI oficial com versão fixada (`0d8bfdb`) |
-| 7 | **docker compose** (workflow de evidências) | `alembic upgrade head` não encontrava o pacote `app`: **bug herdado da Sprint 2**, as migrações nunca tinham funcionado | `prepend_sys_path` + migração aplicada do zero em todo PR (`13e8720`) |
-| 8 | **docker compose** | Python 3.13 ativa `VERIFY_X509_STRICT` e **recusou** a CA de dev sem `keyUsage`: a ingestão IoT não conectava ao broker | certificados com as extensões X.509 exigidas (`cac07bc`) |
-| 9 | **Prometheus** (alertas) | séries rotuladas nasciam no 1º evento, `increase()` não enxergava o ataque e o alerta de **telemetria forjada não disparava** | séries pré-inicializadas em 0 (`9368b69`) |
+| 1 | **Dependabot** (alerta crítico) | `aquasecurity/trivy-action` < 0.35.0 teve a cadeia de suprimentos comprometida ([GHSA-69fq-xp46-6x23](https://github.com/advisories/GHSA-69fq-xp46-6x23)); a tag `0.28.0` usada no pipeline nem existia mais | actions de terceiros **fixadas por SHA de commit** (trivy v0.36.0, zap, cosign, checkov); alerta marcado como *fixed* (`1e9d554`) |
+| 2 | **Trivy** (bloqueou o build) | `setuptools 70.3.0` (CVE-2025-47273, HIGH, path traversal) e `msgpack 1.1.2` vendorizado no pip (GHSA-6v7p-g79w-8964, HIGH) na imagem | pip/setuptools/ensurepip removidos da imagem final, pois o runtime não instala pacotes (`8c62cf1`) |
+| 3 | **OWASP ZAP** | a 1ª varredura recebeu **429** na maior parte das rotas: o próprio rate limit cegava o DAST (falso negativo) | limites relaxados **só** no container efêmero de CI (`cc9fe11`) |
+| 4 | **OWASP ZAP** | header `Cross-Origin-Resource-Policy` ausente (regra 90004) | header adicionado, testado e promovido a regra FAIL (`cc9fe11`) |
+| 5 | **Gitleaks** | senha literal no simulador de ataques (valor fictício, mas era credencial *hardcoded*) | senha aleatória; ocorrência histórica registrada em `.gitleaksignore` com justificativa (`9a5bc98`) |
+| 6 | **Gitleaks** (falha da ferramenta) | `gitleaks-action@v2` quebra no 1º push de um repositório | CLI oficial com versão fixada (`e6f8863`) |
+| 7 | **docker compose** (workflow de evidências) | `alembic upgrade head` não encontrava o pacote `app`: **bug herdado da Sprint 2**, as migrações nunca tinham funcionado | `prepend_sys_path` + migração aplicada do zero em todo PR (`8b0a695`) |
+| 8 | **docker compose** | Python 3.13 ativa `VERIFY_X509_STRICT` e **recusou** a CA de dev sem `keyUsage`: a ingestão IoT não conectava ao broker | certificados com as extensões X.509 exigidas (`3d0e770`) |
+| 9 | **Prometheus** (alertas) | séries rotuladas nasciam no 1º evento, `increase()` não enxergava o ataque e o alerta de **telemetria forjada não disparava** | séries pré-inicializadas em 0 (`a97e7c7`) |
+| 10 | **Deploy** (1ª aprovação do ambiente `production`) | o registry recusou a imagem `ghcr.io/DaniloALR/...`: nomes de imagem precisam estar em minúsculas | nome da imagem convertido para minúsculas no job de deploy |
 
 ---
 
@@ -219,7 +220,7 @@ manual tinha pegado. Cada um virou um commit de correção (histórico em 2.7):
 
 ### 2.1 Criptografia local
 
-**Arquivos:** [`app/security/data_privacy.py`](../app/security/data_privacy.py), [`app/db/models.py`](../app/db/models.py), [`scripts/backup_db.py`](../scripts/backup_db.py) · **Commits:** `0843256`, `9cd12f0`
+**Arquivos:** [`app/security/data_privacy.py`](../app/security/data_privacy.py), [`app/db/models.py`](../app/db/models.py), [`scripts/backup_db.py`](../scripts/backup_db.py) · **Commits:** `303e43c`, `d62145b`
 
 **Antes (Sprint 2):** chave com valor padrão no código, derivada por um único SHA-256 e sem rotação:
 ```python
@@ -263,7 +264,7 @@ class AppUser(Base):
 
 ### 2.2 Hardening de API
 
-**Arquivos:** [`app/security/protection.py`](../app/security/protection.py), [`app/security/validation.py`](../app/security/validation.py), [`app/security/auth.py`](../app/security/auth.py), [`app/main.py`](../app/main.py) · **Commits:** `5e5eb46`, `f7f5fa6`
+**Arquivos:** [`app/security/protection.py`](../app/security/protection.py), [`app/security/validation.py`](../app/security/validation.py), [`app/security/auth.py`](../app/security/auth.py), [`app/main.py`](../app/main.py) · **Commits:** `35a02c9`, `299ffcb`
 
 #### a) Rate limit
 
@@ -323,7 +324,7 @@ if denylist.revogado(payload["jti"]):
 
 ### 2.3 Controle de acesso por perfil (Brigadista, Gestor, Administrador)
 
-**Arquivos:** [`app/security/rbac.py`](../app/security/rbac.py), [`app/routers/admin.py`](../app/routers/admin.py) · **Commit:** `34c268f`
+**Arquivos:** [`app/security/rbac.py`](../app/security/rbac.py), [`app/routers/admin.py`](../app/routers/admin.py) · **Commit:** `f09c403`
 
 | Permissão | Rota(s) | Brigadista | Gestor | Administrador |
 |-----------|---------|:---------:|:------:|:-------------:|
@@ -347,7 +348,7 @@ Teste parametrizado da matriz: `TestRBAC.test_matriz_de_permissoes` (11 combina�
 
 ### 2.4 Segurança MQTT/TLS para IoT
 
-**Arquivos:** [`iot/telemetry.py`](../iot/telemetry.py), [`iot/mqtt_secure_client.py`](../iot/mqtt_secure_client.py), [`infra/mosquitto/mosquitto.conf`](../infra/mosquitto/mosquitto.conf), [`infra/mosquitto/acl`](../infra/mosquitto/acl), [`scripts/gen_dev_certs.sh`](../scripts/gen_dev_certs.sh) · **Commit:** `a1f4ff0`
+**Arquivos:** [`iot/telemetry.py`](../iot/telemetry.py), [`iot/mqtt_secure_client.py`](../iot/mqtt_secure_client.py), [`infra/mosquitto/mosquitto.conf`](../infra/mosquitto/mosquitto.conf), [`infra/mosquitto/acl`](../infra/mosquitto/acl), [`scripts/gen_dev_certs.sh`](../scripts/gen_dev_certs.sh) · **Commit:** `091d130`
 
 ```mermaid
 sequenceDiagram
@@ -390,7 +391,7 @@ pattern read  fordspec/commands/%u
 
 ### 2.5 IaC Security
 
-**Arquivos:** [`Dockerfile`](../Dockerfile), [`docker-compose.yml`](../docker-compose.yml), [`k8s/`](../k8s/) · **Commit:** `eebeb93`
+**Arquivos:** [`Dockerfile`](../Dockerfile), [`docker-compose.yml`](../docker-compose.yml), [`k8s/`](../k8s/) · **Commit:** `47c92fb`
 
 | Artefato | Boas práticas aplicadas |
 |----------|------------------------|
@@ -412,59 +413,62 @@ pattern read  fordspec/commands/%u
 
 | # | Vulnerabilidade (Sprint 2) | Severidade | Como foi encontrada | Correção | Commit |
 |---|---------------------------|-----------|---------------------|----------|--------|
-| 1 | 33 CVEs em dependências (python-jose, cryptography, starlette, dotenv, ecdsa) | Alta | pip-audit | versões corrigidas + PyJWT | `7850567` |
-| 2 | Segredos JWT/cripto/HMAC com fallback hardcoded | Crítica | revisão de código + Gitleaks | config central que recusa segredo fraco | `a06219d` |
-| 3 | Senhas de usuários no código-fonte | Crítica | revisão de código | tabela `app_user` + seed via ambiente | `34c268f` |
-| 4 | Credenciais `user:pass` no `alembic.ini` | Média | revisão de código | URL lida de `DATABASE_URL` | `a06219d` |
-| 5 | BOLA em `GET /v1/specs/{id}` | Alta | threat model (API1) | verificação de dono | `34c268f` |
-| 6 | JWT sem `aud/iss/jti`, refresh sem rotação | Média | revisão (ASVS V3) | claims obrigatórias, rotação, revogação | `5e5eb46` |
-| 7 | Perfil lido só do token (rebaixar usuário não tinha efeito imediato) | Média | teste de troca de perfil | perfil + `token_version` vindos do banco | `34c268f` |
-| 8 | Wildcard `%` no `ilike` listava a base inteira | Média | teste de fuzzing | escape de `%`, `_` e `\` | `34c268f` |
-| 9 | Header injection no `Content-Disposition` do export | Média | teste com `%0d%0a` | sanitização + filename seguro | `f7f5fa6` |
-| 10 | CSV/Formula injection no export | Baixa | revisão | prefixo `'` | `f7f5fa6` |
-| 11 | Senha > 72 bytes causava erro 500 (bcrypt 5) | Baixa | teste | validação em bytes | `5e5eb46` |
-| 12 | Sem limite de corpo (DoS) | Média | threat model (API4) | 413, inclusive chunked | `f7f5fa6` |
-| 13 | Login sem limite próprio / sem lockout | Alta | threat model | 5/min + lockout de conta | `5e5eb46`, `f7f5fa6` |
-| 14 | Catálogo público (scraping do ativo) | Média | threat model (API6) | autenticação obrigatória | `34c268f` |
-| 15 | Enumeração de usuário por tempo de resposta | Baixa | revisão | bcrypt com hash *dummy* | `5e5eb46` |
-| 16 | 7 falhas de IaC | Média | Checkov | ver 2.5 | `eebeb93` |
-| 17 | Action de terceiros com supply chain comprometida (trivy-action < 0.35) | Crítica | Dependabot | pin por SHA de commit | `c020218` |
-| 18 | setuptools/msgpack vulneráveis na imagem | Alta | Trivy | pip/setuptools removidos do runtime | `b0f453d` |
-| 19 | Migrações Alembic nunca executavam (herdado da Sprint 2) | Média | docker compose | `prepend_sys_path` + teste no pipeline | `13e8720` |
-| 20 | Header CORP ausente | Baixa | OWASP ZAP | header + regra FAIL | `a53673a` |
-| 21 | DAST cego pelo rate limit (falso negativo) | Média | análise do log do ZAP | limites relaxados só no CI | `a53673a` |
-| 22 | Alerta de ataque IoT não disparava | Média | workflow de evidências | séries pré-inicializadas | `9368b69` |
+| 1 | 33 CVEs em dependências (python-jose, cryptography, starlette, dotenv, ecdsa) | Alta | pip-audit | versões corrigidas + PyJWT | `11f6502` |
+| 2 | Segredos JWT/cripto/HMAC com fallback hardcoded | Crítica | revisão de código + Gitleaks | config central que recusa segredo fraco | `69b3fe6` |
+| 3 | Senhas de usuários no código-fonte | Crítica | revisão de código | tabela `app_user` + seed via ambiente | `f09c403` |
+| 4 | Credenciais `user:pass` no `alembic.ini` | Média | revisão de código | URL lida de `DATABASE_URL` | `69b3fe6` |
+| 5 | BOLA em `GET /v1/specs/{id}` | Alta | threat model (API1) | verificação de dono | `f09c403` |
+| 6 | JWT sem `aud/iss/jti`, refresh sem rotação | Média | revisão (ASVS V3) | claims obrigatórias, rotação, revogação | `35a02c9` |
+| 7 | Perfil lido só do token (rebaixar usuário não tinha efeito imediato) | Média | teste de troca de perfil | perfil + `token_version` vindos do banco | `f09c403` |
+| 8 | Wildcard `%` no `ilike` listava a base inteira | Média | teste de fuzzing | escape de `%`, `_` e `\` | `f09c403` |
+| 9 | Header injection no `Content-Disposition` do export | Média | teste com `%0d%0a` | sanitização + filename seguro | `299ffcb` |
+| 10 | CSV/Formula injection no export | Baixa | revisão | prefixo `'` | `299ffcb` |
+| 11 | Senha > 72 bytes causava erro 500 (bcrypt 5) | Baixa | teste | validação em bytes | `35a02c9` |
+| 12 | Sem limite de corpo (DoS) | Média | threat model (API4) | 413, inclusive chunked | `299ffcb` |
+| 13 | Login sem limite próprio / sem lockout | Alta | threat model | 5/min + lockout de conta | `35a02c9`, `299ffcb` |
+| 14 | Catálogo público (scraping do ativo) | Média | threat model (API6) | autenticação obrigatória | `f09c403` |
+| 15 | Enumeração de usuário por tempo de resposta | Baixa | revisão | bcrypt com hash *dummy* | `35a02c9` |
+| 16 | 7 falhas de IaC | Média | Checkov | ver 2.5 | `47c92fb` |
+| 17 | Action de terceiros com supply chain comprometida (trivy-action < 0.35) | Crítica | Dependabot | pin por SHA de commit | `1e9d554` |
+| 18 | setuptools/msgpack vulneráveis na imagem | Alta | Trivy | pip/setuptools removidos do runtime | `8c62cf1` |
+| 19 | Migrações Alembic nunca executavam (herdado da Sprint 2) | Média | docker compose | `prepend_sys_path` + teste no pipeline | `8b0a695` |
+| 20 | Header CORP ausente | Baixa | OWASP ZAP | header + regra FAIL | `cc9fe11` |
+| 21 | DAST cego pelo rate limit (falso negativo) | Média | análise do log do ZAP | limites relaxados só no CI | `cc9fe11` |
+| 22 | Alerta de ataque IoT não disparava | Média | workflow de evidências | séries pré-inicializadas | `a97e7c7` |
 
 ### 2.7 Histórico de commits (evidência)
 
 ```text
+# migração para o repositório definitivo
+cccd479 chore: atualiza fingerprint do gitleaks apos reescrita do historico
+b3525ab docs: evidencias reais do pipeline e da observabilidade no documento da Sprint 3
 # correções guiadas pelo pipeline rodando no GitHub (seção 1.6)
-7b32092 test(simulacao): brute force em janela propria (rate limit de login consumia os chutes)
-9b8291c fix(secrets): Gitleaks barrou senha literal no simulador; senha passa a ser aleatoria
-9368b69 fix(observability): pre-inicializa series de metricas e amplia a simulacao de ataques
-c85018c fix(compose): healthcheck proprio para o servico de ingestao IoT (herdava o da API)
-cac07bc fix(iot): certificados de dev com extensoes X.509 exigidas pela verificacao estrita
-13e8720 fix(migrations): alembic nao encontrava o pacote app (prepend_sys_path)
-3b813db ci(evidencias): workflow que sobe o compose completo, simula ataques e captura prints
-a53673a fix(dast): ZAP bloqueado pelo proprio rate limit; adiciona Cross-Origin-Resource-Policy
-b0f453d fix(container): remove pip/setuptools/ensurepip da imagem final
-c020218 ci: fixa actions de terceiros por SHA de commit (trivy, zap, cosign, checkov)
-0d8bfdb ci: executa Gitleaks via CLI oficial (a action falha no primeiro push do repositorio)
-0400400 docs: documento consolidado da Sprint 3 (DevSecOps), STRIDE revisado, evidencias e README
+552e14d test(simulacao): brute force em janela propria (rate limit de login consumia os chutes)
+9a5bc98 fix(secrets): Gitleaks barrou senha literal no simulador; senha passa a ser aleatoria
+a97e7c7 fix(observability): pre-inicializa series de metricas e amplia a simulacao de ataques
+c232101 fix(compose): healthcheck proprio para o servico de ingestao IoT (herdava o da API)
+3d0e770 fix(iot): certificados de dev com extensoes X.509 exigidas pela verificacao estrita
+8b0a695 fix(migrations): alembic nao encontrava o pacote app (prepend_sys_path)
+750b9cf ci(evidencias): workflow que sobe o compose completo, simula ataques e captura prints
+cc9fe11 fix(dast): ZAP bloqueado pelo proprio rate limit; adiciona Cross-Origin-Resource-Policy
+8c62cf1 fix(container): remove pip/setuptools/ensurepip da imagem final
+1e9d554 ci: fixa actions de terceiros por SHA de commit (trivy, zap, cosign, checkov)
+e6f8863 ci: executa Gitleaks via CLI oficial (a action falha no primeiro push do repositorio)
+08ae29d docs: documento consolidado da Sprint 3 (DevSecOps), STRIDE revisado, evidencias e README
 # melhorias de código e infraestrutura
-5777ab1 ci(devsecops): pipeline com Gitleaks, Semgrep, Bandit, pip-audit, Checkov, Trivy, SBOM, ZAP e deploy assinado
-eebeb93 feat(iac): Dockerfile endurecido, docker-compose seguro e manifests Kubernetes
-fd0ef59 feat(observability): Prometheus, alertas, Alertmanager, Loki/Promtail e dashboard Grafana
-9cd12f0 feat(backup): rotina de backup e restauracao cifrada com verificacao e retencao
-a1f4ff0 feat(iot): telemetria MQTT sobre TLS com mTLS, ACL por dispositivo e mensagens assinadas
-d32043a test: suite de seguranca e contrato (66 testes) + relatorios Bandit
-a1fd008 feat(observability): logs JSON com trace_id, metricas Prometheus e auditoria encadeada
-f7f5fa6 feat(hardening): rate limit por rota, limite de payload e erros sem stack trace
-0843256 feat(crypto): criptografia local com HKDF, rotacao de chaves e coluna cifrada
-34c268f feat(rbac): perfis Brigadista/Gestor/Administrador e controle por objeto
-5e5eb46 feat(auth): JWT seguro com claims obrigatorias, rotacao e revogacao
-a06219d feat(secrets): configuracao central sem segredos hardcoded
-7850567 fix(sca): atualiza dependencias vulneraveis e troca python-jose por PyJWT
+8057a5d ci(devsecops): pipeline com Gitleaks, Semgrep, Bandit, pip-audit, Checkov, Trivy, SBOM, ZAP e deploy assinado
+47c92fb feat(iac): Dockerfile endurecido, docker-compose seguro e manifests Kubernetes
+61731f9 feat(observability): Prometheus, alertas, Alertmanager, Loki/Promtail e dashboard Grafana
+d62145b feat(backup): rotina de backup e restauracao cifrada com verificacao e retencao
+091d130 feat(iot): telemetria MQTT sobre TLS com mTLS, ACL por dispositivo e mensagens assinadas
+55bf6d1 test: suite de seguranca e contrato (66 testes) + relatorios Bandit
+b98bf7f feat(observability): logs JSON com trace_id, metricas Prometheus e auditoria encadeada
+299ffcb feat(hardening): rate limit por rota, limite de payload e erros sem stack trace
+303e43c feat(crypto): criptografia local com HKDF, rotacao de chaves e coluna cifrada
+f09c403 feat(rbac): perfis Brigadista/Gestor/Administrador e controle por objeto
+35a02c9 feat(auth): JWT seguro com claims obrigatorias, rotacao e revogacao
+69b3fe6 feat(secrets): configuracao central sem segredos hardcoded
+11f6502 fix(sca): atualiza dependencias vulneraveis e troca python-jose por PyJWT
 ea822df chore: baseline Sprint 2 (API segura FordSpec)
 ```
 `git diff ea822df..HEAD` mostra o antes/depois completo.
@@ -516,7 +520,7 @@ Tudo está versionado em [`observability/`](../observability/) e sobe com `docke
 | Proteção | `rate_limit_excedido`, `payload_excedido`, `erro_nao_tratado` |
 | IoT | `telemetria_aceita`, `telemetria_rejeitada` (motivo) |
 
-**Exemplos reais**, gerados por um cenário de ataque simulado (arquivo completo: [`exemplos_logs.jsonl`](exemplos_logs.jsonl)):
+**Exemplos reais**, gerados por um cenário de ataque simulado (amostra do ambiente `docker compose`: [`logs_amostra_compose.jsonl`](prints/logs_amostra_compose.jsonl)):
 
 ```json
 {"ts": "2026-09-25T14:17:39.500176+00:00", "nivel": "WARNING", "tipo": "seguranca", "evento": "acesso_negado", "ip": "200.160.2.10", "detalhe": "spec:export", "usuario": "brigadista", "perfil": "brigadista", "trace_id": "e2da10bb-6acb-410a-ad22-811bbca4007d"}
@@ -691,7 +695,7 @@ Status: ✅ mitigado · 🟡 parcialmente mitigado (risco residual aceito ou dep
 | Segredo em log de CI | `echo $SECRET` | GitHub mascara secrets; segredos de DAST são efêmeros; `kubeconfig` removido ao fim do job |
 | Bypass dos gates | merge direto em `main` | branch protection com checks obrigatórios e revisão; deploy com aprovação manual |
 | Falso negativo das ferramentas | o Bandit não pegou as senhas hardcoded | defesa em camadas (Semgrep + Gitleaks + testes + revisão) |
-| Falso positivo gera fadiga | desenvolvedores passam a ignorar achados | `nosec` só com justificativa; `.gitleaks.toml`/`.zap/rules.tsv` versionados e revisados |
+| Falso positivo gera fadiga | desenvolvedores passam a ignorar achados | `nosec` só em falsos positivos revisados (seção 1.5); `.gitleaks.toml`/`.zap/rules.tsv` versionados e revisados |
 | Dependência abandonada | caso do `python-jose` | SCA semanal + critério de manutenção ativa na escolha de bibliotecas |
 | Drift entre IaC e produção | alteração manual no cluster | deploy só pelo pipeline; `kubectl diff` na revisão mensal |
 
@@ -712,7 +716,7 @@ Status: ✅ mitigado · 🟡 parcialmente mitigado (risco residual aceito ou dep
 | V6 Criptografia | 6.2.x algoritmos aprovados, falha segura | Fernet/HKDF/HMAC-SHA256 | `TestCriptografia` |
 | | 6.4.x gestão e rotação de chaves | MultiFernet, `DATA_ENC_KEYS`, cofre | `test_rotacao_de_chave` |
 | V7 Erros e logs | 7.1.1 sem credenciais no log | filtro de campos sensíveis | `test_log_estruturado_sem_segredos` |
-| | 7.2.x log de eventos de autenticação e controle de acesso | eventos da seção 3.2 | `exemplos_logs.jsonl` |
+| | 7.2.x log de eventos de autenticação e controle de acesso | eventos da seção 3.2 | `prints/logs_amostra_compose.jsonl` |
 | | 7.3.x proteção da integridade do log | hash encadeado | `test_cadeia_de_auditoria_detecta_adulteracao` |
 | | 7.4.1 mensagem de erro genérica | handler de 500 | `test_erro_500_generico` |
 | V8 Proteção de dados | 8.3.x minimização e proteção de dados sensíveis | pseudonimização, mascaramento, e-mail cifrado | `test_pseudonimizacao` |
@@ -886,8 +890,7 @@ python -m scripts.backup_db backup && python -m scripts.backup_db verify backups
 | `docs_seguranca/bandit_ANTES.txt` / `_DEPOIS.txt` | SAST antes e depois |
 | `docs_seguranca/checkov_DEPOIS.txt` | IaC: 0 falhas |
 | `docs_seguranca/evidencias_testes.txt` | 81 testes aprovados, cobertura de 90% |
-| `docs_seguranca/exemplos_logs.jsonl` | logs reais de um cenário de ataque |
-| `docs_seguranca/threat_model_STRIDE.md` | threat model atualizado |
+| `docs_seguranca/arquitetura.svg` | diagrama de arquitetura (também exibido no README) |
 | `docs_seguranca/prints/01..05_*.png` | Grafana, alertas e targets do Prometheus, Loki e pipeline no GitHub Actions |
 | `docs_seguranca/prints/alertas_prometheus.json` | alertas disparados durante a simulação |
 | `docs_seguranca/prints/logs_amostra_compose.jsonl` | logs reais do ambiente compose (API e ingestão IoT) |

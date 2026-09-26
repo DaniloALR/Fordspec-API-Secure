@@ -1,4 +1,3 @@
-# Gitleaks: regras padrão + exceções justificadas.
 title = "FordSpec gitleaks"
 
 [extend]

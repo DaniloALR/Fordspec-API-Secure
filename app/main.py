@@ -21,7 +21,6 @@ from app.security.protection import (
 
 APP_VERSION = "2.0.0"
 
-# Em produção o schema é gerenciado apenas por migrações Alembic.
 if not settings.is_production:
     Base.metadata.create_all(bind=engine)
 
@@ -29,20 +28,16 @@ app = FastAPI(
     title="FordSpec AI — API (DevSecOps)",
     version=APP_VERSION,
     description="API do Desafio 01 com segurança contínua (Sprint 3 — DevSecOps).",
-    # documentação interativa desabilitada em produção (reduz superfície de ataque)
     docs_url="/docs" if settings.docs_enabled else None,
     redoc_url="/redoc" if settings.docs_enabled else None,
     openapi_url="/openapi.json" if settings.docs_enabled else None,
 )
 
-# add_middleware empilha: o ÚLTIMO adicionado é o mais externo.
-# BodySizeLimit fica mais interno: nenhum BaseHTTPMiddleware entre ele e a rota
-# (esses envolvem o `receive` em task groups e mascarariam o 413).
 app.add_middleware(BodySizeLimitMiddleware, max_bytes=settings.max_body_bytes)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
-    allow_credentials=False,  # autenticação via header Bearer, não cookies
+    allow_credentials=False,
     allow_methods=["GET", "POST", "PATCH"],
     allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
     expose_headers=["X-Request-ID", "Retry-After"],
@@ -64,7 +59,6 @@ async def domain_error_handler(request: Request, exc: DomainError):
 
 @app.exception_handler(RequestValidationError)
 async def validation_error_handler(request: Request, exc: RequestValidationError):
-    # não ecoa o valor recebido ("input"): evita refletir payload malicioso
     detalhes = [{"campo": ".".join(str(p) for p in e.get("loc", [])), "erro": e.get("msg")}
                 for e in exc.errors()]
     return JSONResponse(
@@ -76,7 +70,6 @@ async def validation_error_handler(request: Request, exc: RequestValidationError
 
 @app.exception_handler(Exception)
 async def unhandled_error_handler(request: Request, exc: Exception):
-    # nunca expõe stack trace ao cliente; o detalhe fica no log com o trace_id
     log_erro("erro_nao_tratado", f"{type(exc).__name__}: {exc}")
     return JSONResponse(
         status_code=500,
@@ -93,7 +86,6 @@ def root():
 
 @app.get("/metrics", include_in_schema=False)
 def metrics_endpoint(request: Request):
-    # Em produção exige o token do Prometheus (além da NetworkPolicy no k8s).
     if settings.metrics_token:
         recebido = request.headers.get("authorization", "")
         if not hmac.compare_digest(recebido, f"Bearer {settings.metrics_token}"):

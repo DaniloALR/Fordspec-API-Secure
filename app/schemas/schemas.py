@@ -1,15 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel, Field
-
-class SpecRequestIn(BaseModel):
-    brand: str = Field(..., examples=["Ford"])
-    model: str = Field(..., examples=["Ranger"])
-    version: str = Field(..., examples=["Limited 3.0L V6 26MY"])
-    attributes: Optional[list[str]] = Field(
-        default=None,
-        description="Lista livre de atributos. Se vazia, retorna a ficha completa.",
-        examples=[["Potência", "Torque", "Tração"]],
-    )
+from pydantic import BaseModel
 
 
 class SpecItem(BaseModel):
@@ -39,9 +29,3 @@ class VehicleOut(BaseModel):
     brand: str
     model: str
     version: str
-
-
-class ErrorOut(BaseModel):
-    error: str
-    message: str
-    status: int

@@ -1,15 +1,3 @@
-"""Logs estruturados (JSON), trilha de auditoria e detecção de atividade suspeita.
-
-Sprint 3:
-- trace_id por requisição (contextvar) correlaciona todos os logs de uma chamada.
-- Campos sensíveis (senha, token, secret) são removidos antes de logar; JSON
-  escapa quebras de linha, evitando log injection.
-- Saída em stdout (coletada por Promtail/Loki, Azure Monitor etc.) e,
-  opcionalmente, em arquivo JSONL (LOG_FILE).
-- Eventos críticos também são persistidos em `audit_event` com hash encadeado
-  (SHA-256): qualquer alteração/remoção de registro quebra a cadeia (não repúdio).
-- Detector de brute force com janela deslizante por IP.
-"""
 import contextvars
 import hashlib
 import json
@@ -27,8 +15,6 @@ from app.observability import metrics
 
 trace_id_var: contextvars.ContextVar[str | None] = contextvars.ContextVar("trace_id", default=None)
 client_ip_var: contextvars.ContextVar[str | None] = contextvars.ContextVar("client_ip", default=None)
-# dict mutável criado pelo middleware: permite que a dependência de auth informe o
-# usuário ao log de acesso (contextvars são copiados entre tasks, o dict é o mesmo)
 contexto_var: contextvars.ContextVar[dict | None] = contextvars.ContextVar("contexto", default=None)
 
 _CAMPOS_PROIBIDOS = ("senha", "password", "token", "secret", "authorization")
@@ -84,9 +70,6 @@ def log_erro(evento: str, detalhe: str):
     _emit("erro", nivel="ERROR", evento=evento, detalhe=detalhe)
 
 
-# ---------------------------------------------------------------------------
-# Trilha de auditoria persistente com hash encadeado
-# ---------------------------------------------------------------------------
 GENESIS_HASH = "0" * 64
 
 
@@ -100,8 +83,7 @@ _audit_lock = threading.Lock()
 
 
 def registrar_auditoria(db, actor: str, action: str, resource: str):
-    """Loga e persiste um evento crítico, encadeado ao anterior."""
-    from app.db.models import AuditEvent  # import tardio evita ciclo com models
+    from app.db.models import AuditEvent
 
     log_auditoria(actor, action, resource)
     ip = client_ip_var.get()
@@ -120,7 +102,6 @@ def registrar_auditoria(db, actor: str, action: str, resource: str):
 
 
 def verificar_cadeia(db) -> dict:
-    """Recalcula a cadeia inteira; retorna o primeiro registro adulterado, se houver."""
     from app.db.models import AuditEvent
 
     prev = GENESIS_HASH
@@ -134,9 +115,6 @@ def verificar_cadeia(db) -> dict:
     return {"integra": True, "total": total, "registro_adulterado": None}
 
 
-# ---------------------------------------------------------------------------
-# Detecção de brute force (por IP, janela deslizante)
-# ---------------------------------------------------------------------------
 class SuspiciousActivityMonitor:
     def __init__(self, limite: int = 5, janela_segundos: int = 300):
         self.limite = limite

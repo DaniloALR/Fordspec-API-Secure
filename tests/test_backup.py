@@ -1,4 +1,3 @@
-"""Rotina de backup e recuperação: backup cifrado, verificação e detecção de adulteração."""
 import pytest
 
 from app.db.database import DATABASE_URL
@@ -8,7 +7,7 @@ from scripts import backup_db
 def test_backup_cifrado_e_restauravel(tmp_path):
     arquivo = backup_db.backup(DATABASE_URL, tmp_path)
     conteudo = arquivo.read_bytes()
-    assert b"SQLite format" not in conteudo and b"app_user" not in conteudo  # cifrado
+    assert b"SQLite format" not in conteudo and b"app_user" not in conteudo
     assert backup_db.verify(arquivo) is True
     destino = tmp_path / "restaurado.db"
     backup_db.restore(arquivo, destino)

@@ -1,5 +1,3 @@
-# Regras de alerta FordSpec: cada alerta aponta para um playbook do plano de
-# resposta a incidentes (docs_seguranca/SPRINT3_DevSecOps.md, seção 3.5).
 groups:
   - name: fordspec-seguranca
     rules:

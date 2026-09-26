@@ -29,13 +29,11 @@ def _texto_query(valor: str, campo: str) -> str:
 
 
 def _nome_arquivo_seguro(*partes: str) -> str:
-    # impede header injection (CR/LF, aspas) e path traversal no Content-Disposition
     base = "_".join(partes)
     return "ficha_" + re.sub(r"[^A-Za-z0-9._-]", "_", base)[:100] + ".csv"
 
 
 def _celula_csv_segura(valor) -> str:
-    # evita CSV/Formula injection ao abrir o arquivo no Excel
     texto = "" if valor is None else str(valor)
     return "'" + texto if texto[:1] in ("=", "+", "-", "@", "\t", "\r") else texto
 
@@ -90,8 +88,6 @@ def get_spec(request_id: str = Path(..., pattern=_UUID_RE),
              db: Session = Depends(get_db),
              user: dict = Depends(require_permission("spec:read_own"))):
     req = spec_service.get_request(db, request_id)
-    # BOLA (OWASP API1:2023): brigadista só acessa fichas que ele mesmo gerou.
-    # Ficha de outro usuário responde 404 (não confirma a existência do id).
     dono = req is not None and req.requested_by == pseudonimizar(user["sub"])
     if not req or not (dono or has_permission(user, "spec:read_any")):
         if req:

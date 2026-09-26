@@ -1,12 +1,3 @@
-# Pipeline DevSecOps FordSpec: segurança em cada etapa, do commit ao deploy.
-#
-#   commit/PR ─┬─ 1. Secret scanning (Gitleaks) ──────┐
-#              ├─ 2. SAST (Semgrep + Bandit) ──────────┤
-#              ├─ 3. SCA (pip-audit + Dependency Review)┤
-#              ├─ 4. Testes (pytest + cobertura) ───────┼─► 6. Build + Trivy + SBOM ─► 7. DAST (ZAP) ─► 8. Deploy (main, aprovação)
-#              └─ 5. IaC (Checkov) ────────────────────┘
-#
-# Qualquer achado HIGH/CRITICAL bloqueia o merge (branch protection exige estes checks).
 name: DevSecOps
 
 on:
@@ -15,10 +6,9 @@ on:
   pull_request:
     branches: [main, develop]
   schedule:
-    - cron: "0 6 * * 1"   # varredura semanal: CVEs novos em código que não mudou
+    - cron: "0 6 * * 1"
   workflow_dispatch:
 
-# menor privilégio: cada job pede só o que precisa
 permissions:
   contents: read
 
@@ -28,19 +18,15 @@ concurrency:
 
 env:
   PYTHON_VERSION: "3.13"
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/fordspec-api
 
 jobs:
-  # ---------------------------------------------------------------- 1
   secrets:
     name: 1. Secret scanning (Gitleaks)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # varre TODO o histórico, não só o último commit
-      # CLI oficial com versão fixada: varre todos os commits. A action gitleaks-action@v2
-      # falha no primeiro push de um repositório (tenta ler o pai do commit raiz).
+          fetch-depth: 0
       - name: Gitleaks (histórico completo)
         env:
           GITLEAKS_VERSION: "8.24.3"
@@ -56,13 +42,12 @@ jobs:
           name: gitleaks-report
           path: gitleaks.sarif
 
-  # ---------------------------------------------------------------- 2
   sast:
     name: 2a. SAST (Semgrep)
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      security-events: write   # publica achados na aba Security (SARIF)
+      security-events: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -96,7 +81,6 @@ jobs:
           pip install --quiet bandit==1.9.4
           bandit -r app iot scripts seed -ll -ii
 
-  # ---------------------------------------------------------------- 3
   sca:
     name: 3. SCA (pip-audit + Dependency Review)
     runs-on: ubuntu-latest
@@ -120,7 +104,6 @@ jobs:
           deny-licenses: AGPL-3.0, GPL-3.0
           comment-summary-in-pr: on-failure
 
-  # ---------------------------------------------------------------- 4
   test:
     name: 4. Testes de segurança e contrato
     runs-on: ubuntu-latest
@@ -143,7 +126,6 @@ jobs:
             pytest.xml
             coverage.xml
 
-  # ---------------------------------------------------------------- 5
   iac:
     name: 5. IaC security (Checkov)
     runs-on: ubuntu-latest
@@ -152,7 +134,7 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@v4
-      - uses: bridgecrewio/checkov-action@444c9db6fa75e2d9c19ebf1fde7322089be9009e  # v12.3125.0
+      - uses: bridgecrewio/checkov-action@444c9db6fa75e2d9c19ebf1fde7322089be9009e
         with:
           directory: .
           framework: dockerfile,kubernetes,github_actions,secrets
@@ -166,7 +148,6 @@ jobs:
           sarif_file: checkov.sarif
           category: checkov
 
-  # ---------------------------------------------------------------- 6
   build:
     name: 6. Build + Container scan (Trivy) + SBOM
     needs: [secrets, sast, sast-bandit, sca, test, iac]
@@ -185,7 +166,7 @@ jobs:
           tags: fordspec-api:${{ github.sha }}
           provenance: false
       - name: Trivy — vulnerabilidades da imagem (bloqueia HIGH/CRITICAL)
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           image-ref: fordspec-api:${{ github.sha }}
           severity: HIGH,CRITICAL
@@ -199,7 +180,7 @@ jobs:
           sarif_file: trivy.sarif
           category: trivy
       - name: SBOM (CycloneDX)
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           image-ref: fordspec-api:${{ github.sha }}
           format: cyclonedx
@@ -216,7 +197,6 @@ jobs:
           path: image.tar
           retention-days: 1
 
-  # ---------------------------------------------------------------- 7
   dast:
     name: 7. DAST (OWASP ZAP API scan)
     needs: build
@@ -229,8 +209,6 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: image
-      # rate limit relaxado SÓ neste container efêmero: senão o próprio limite (429)
-      # bloqueia o scanner e o DAST deixa de testar as rotas (falso negativo).
       - name: Sobe a API em modo staging (segredos efêmeros de CI)
         run: |
           docker load -i image.tar
@@ -238,39 +216,40 @@ jobs:
           docker run -d --name api -p 8000:8000 \
             -e APP_ENV=staging \
             -e DATABASE_URL=sqlite:////tmp/ci.db \
-            -e JWT_SECRET="$(gen)" -e DATA_ENC_KEYS="$(gen)" -e HMAC_SECRET="$(gen)" \
+            -e JWT_SECRET="$(gen)" -e DATA_ENC_KEYS="$(gen)" \
             -e PSEUDO_SALT="$(gen)" -e METRICS_TOKEN="$(gen)" \
             -e ALLOWED_HOSTS=localhost,127.0.0.1             -e RATE_LIMIT_DEFAULT=100000 -e RATE_LIMIT_LOGIN=100000 -e RATE_LIMIT_REFRESH=100000 \
             --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges \
             fordspec-api:${{ github.sha }}
           for i in $(seq 1 30); do curl -fs http://localhost:8000/ && break; sleep 2; done
       - name: ZAP API scan
-        uses: zaproxy/action-api-scan@5158fe4d9d8fcc75ea204db81317cce7f9e5453d  # v0.10.0
+        uses: zaproxy/action-api-scan@5158fe4d9d8fcc75ea204db81317cce7f9e5453d
         with:
           target: http://localhost:8000/openapi.json
           format: openapi
           rules_file_name: .zap/rules.tsv
-          cmd_options: "-I"   # alertas WARN não quebram; regras marcadas FAIL quebram
+          cmd_options: "-I"
           allow_issue_writing: false
       - name: Logs da API (evidência)
         if: always()
         run: docker logs api | tail -n 200
 
-  # ---------------------------------------------------------------- 8
   deploy:
     name: 8. Publica, assina e implanta
     needs: dast
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
-    environment: production   # exige aprovação manual (required reviewers)
+    environment: production
     permissions:
       contents: read
       packages: write
-      id-token: write   # assinatura keyless (Sigstore/cosign via OIDC)
+      id-token: write
     env:
       KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
     steps:
       - uses: actions/checkout@v4
+      - name: Nome da imagem em minúsculas (exigência do registry)
+        run: echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/fordspec-api" >> "$GITHUB_ENV"
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -286,7 +265,7 @@ jobs:
           tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
           provenance: true
           sbom: true
-      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6  # v4.1.2
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6
       - name: Assina a imagem (cosign keyless)
         run: cosign sign --yes ${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}
       - name: Deploy no Kubernetes (imagem fixada por digest)

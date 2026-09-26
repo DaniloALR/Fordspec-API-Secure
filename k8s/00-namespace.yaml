@@ -1,5 +1,3 @@
-# Namespace com Pod Security Admission no perfil "restricted":
-# o cluster RECUSA pods privilegiados, com root, hostPath, capabilities extras etc.
 apiVersion: v1
 kind: Namespace
 metadata:

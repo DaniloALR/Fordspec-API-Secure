@@ -1,4 +1,3 @@
-# Lê o arquivo JSONL da API por volume compartilhado (sem montar o docker.sock).
 server:
   http_listen_port: 9080
 positions:

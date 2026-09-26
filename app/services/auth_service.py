@@ -1,4 +1,3 @@
-"""Serviços de autenticação e gestão de usuários (camada de serviço)."""
 from datetime import datetime, timedelta, timezone
 
 import jwt
@@ -28,7 +27,7 @@ def _par_de_tokens(user: AppUser) -> dict:
     return {
         "access_token": create_access_token(user.username, user.role, user.token_version),
         "refresh_token": create_refresh_token(user.username, user.role, user.token_version),
-        "token_type": "bearer",  # tipo do token (RFC 6750), não senha  # nosec B105
+        "token_type": "bearer",  # nosec B105
         "expires_in": settings.access_token_minutes * 60,
         "role": user.role,
     }
@@ -41,7 +40,6 @@ class AuthService:
     def login(self, db: Session, username: str, password: str, ip: str) -> dict:
         user = self.users.get_by_username(db, username)
         bloqueado = bool(user and user.locked_until and user.locked_until > _agora())
-        # verify_password roda sempre (mesmo sem usuário) → tempo constante
         senha_ok = verify_password(password, user.password_hash if user else None)
 
         if not user or not senha_ok or bloqueado or not user.is_active:
@@ -62,7 +60,6 @@ class AuthService:
     def _registrar_falha(self, db, user, username, ip, motivo):
         metrics.LOGIN_FAILURES.labels(reason=motivo).inc()
         monitor.registrar_falha(ip)
-        # usuário inexistente pode ser uma senha digitada no campo errado: pseudonimiza
         ident = user.username if user else pseudonimizar(username)
         log_evento_seguranca("login_falha", ip, motivo, usuario=ident)
         if user and motivo == "senha_incorreta":
@@ -82,8 +79,6 @@ class AuthService:
         try:
             payload = decode_token(refresh_token, expected_type="refresh")
         except RevokedTokenError as exc:
-            # refresh já usado sendo reapresentado = token provavelmente roubado:
-            # invalida TODAS as sessões do usuário.
             metrics.REFRESH_REUSE.inc()
             user = self.users.get_by_username(db, exc.payload["sub"])
             if user:
@@ -100,11 +95,10 @@ class AuthService:
         user = self.users.get_by_username(db, payload["sub"])
         if not user or not user.is_active or user.token_version != payload["ver"]:
             raise InvalidRefreshToken()
-        revoke_token(payload)  # rotação: o refresh usado não vale mais
+        revoke_token(payload)
         return _par_de_tokens(user)
 
     def logout(self, db: Session, username: str):
-        """Logout global: incrementa token_version, invalidando access e refresh."""
         user = self.users.get_by_username(db, username)
         if user:
             user.token_version += 1
@@ -132,7 +126,6 @@ class UserService:
         return [self.to_out(u) for u in self.users.list_all(db)]
 
     def permissions_report(self, db: Session, permissions: dict) -> dict:
-        """Auditoria de permissões: quem tem acesso a quê (rotina periódica)."""
         users = self.users.list_all(db)
         return {
             "gerado_em": _agora().isoformat(),
@@ -164,7 +157,7 @@ class UserService:
         if antigo == "administrador" and role != "administrador":
             self._garantir_outro_admin(db)
         user.role = role
-        user.token_version += 1  # tokens antigos (com o perfil antigo) deixam de valer
+        user.token_version += 1
         self.users.save(db)
         metrics.CRITICAL_CHANGES.labels(action="alteracao_perfil").inc()
         log_evento_seguranca("alteracao_perfil", nivel="WARNING", usuario=username,

@@ -39,7 +39,6 @@ def _validar_senha_forte(v: str) -> str:
 
 
 class _Estrito(BaseModel):
-    # rejeita campos desconhecidos (mass assignment — OWASP API3:2023)
     model_config = ConfigDict(extra="forbid")
 
 
@@ -78,7 +77,6 @@ class LoginIn(_Estrito):
     @field_validator("password")
     @classmethod
     def _val_pwd(cls, v):
-        # bcrypt só considera 72 BYTES; caracteres acentuados ocupam 2+ bytes
         if len(v.encode("utf-8")) > BCRYPT_MAX_BYTES:
             raise ValueError(f"Senha excede {BCRYPT_MAX_BYTES} bytes.")
         return v

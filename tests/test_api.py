@@ -1,4 +1,3 @@
-"""Testes funcionais do contrato REST (regra ND, erros padronizados, exportação)."""
 from tests.conftest import VERSAO
 
 

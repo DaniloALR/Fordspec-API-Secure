@@ -31,6 +31,10 @@ API REST de **Inteligência Competitiva Automotiva**. Recebe `Marca + Modelo + V
                             PostgreSQL / SQLite
 ```
 
+Diagrama completo: [`docs_seguranca/arquitetura.svg`](docs_seguranca/arquitetura.svg)
+
+![Arquitetura FordSpec](docs_seguranca/arquitetura.svg)
+
 ### Separação de camadas (3 camadas isoladas)
 ```
 routers/        → APRESENTAÇÃO (HTTP, validação de entrada, status codes)
@@ -66,8 +70,61 @@ uvicorn app.main:app --reload
 > (tabelas `app_user` e `audit_event` e a coluna `spec_request.requested_by`). Em
 > PostgreSQL, use `alembic upgrade head`.
 
-Ambiente completo (Postgres + MQTT/TLS + Prometheus/Grafana/Loki): `docker compose up -d --build`
-(ver seção 5 do documento da Sprint 3).
+---
+
+## Configuração e segredos
+
+Toda a configuração vem de variáveis de ambiente (ou de um `.env`, que nunca é versionado). Modelo: [`.env.example`](.env.example).
+
+- Gere valores fortes (mínimo de 32 caracteres) com:
+  `python -c "import secrets; print(secrets.token_urlsafe(48))"`
+- Com `APP_ENV=production`, a API **não sobe** se `JWT_SECRET`, `DATA_ENC_KEYS`, `PSEUDO_SALT` ou `METRICS_TOKEN` estiverem ausentes ou fracos.
+- Em desenvolvimento, segredos ausentes são gerados uma vez em `.dev-secrets.json` (ignorado pelo git); em testes (`APP_ENV=test`), são efêmeros.
+- `DATA_ENC_KEYS` aceita várias chaves separadas por vírgula para **rotação**: a primeira cifra, todas decifram.
+- `METRICS_TOKEN` deve ter o mesmo valor do arquivo `secrets/metrics_token.txt`, lido pelo Prometheus.
+- Qualquer segredo pode ser lido de arquivo com o sufixo `_FILE` (ex.: `JWT_SECRET_FILE=/run/secrets/fordspec/JWT_SECRET`), padrão usado no Kubernetes.
+- Sem `SEED_PASSWORD_<PERFIL>`, o seed gera senhas aleatórias e as exibe uma única vez.
+
+## Ambiente completo com Docker Compose
+
+API + PostgreSQL + MQTT/TLS (Mosquitto) + ingestão IoT + Prometheus + Alertmanager + Loki + Grafana.
+
+```bash
+cp .env.example .env                       # 1. preencher os segredos
+sh scripts/gen_dev_certs.sh                # 2. CA e certificados de DESENVOLVIMENTO em infra/certs/
+mkdir secrets                              # 3. segredos lidos por Prometheus e Alertmanager
+echo "<mesmo METRICS_TOKEN do .env>" > secrets/metrics_token.txt
+echo "https://<webhook-teams-ou-slack>" > secrets/alert_webhook_url.txt
+docker compose up -d --build               # 4. sobe tudo
+```
+
+- Portas publicadas somente em `127.0.0.1`: API `8000`, Grafana `3000`, Prometheus `9090`, MQTT/TLS `8883`. A porta `1883` (MQTT sem TLS) não existe.
+- Banco, broker e monitoramento ficam em redes internas, sem acesso à internet.
+- O serviço `migrate` aplica as migrações Alembic e o seed antes da API subir.
+- Gerar tráfego legítimo e ataques simulados para os dashboards e alertas:
+  `SIM_USER=brigadista SIM_PASSWORD=<senha> python -m scripts.simulate_traffic`
+- Publicar telemetria IoT de teste (normal + replay + mensagem forjada):
+  `MQTT_HOST=localhost MQTT_CA=infra/certs/ca.crt MQTT_CERT=infra/certs/ranger-demo-001.crt MQTT_KEY=infra/certs/ranger-demo-001.key python -m iot.mqtt_secure_client publish --device ranger-demo-001 --ataque`
+
+**Certificados IoT:** os gerados por `scripts/gen_dev_certs.sh` são só para desenvolvimento. Em produção, use uma PKI gerenciada (AWS IoT, Azure IoT Hub ou Vault PKI) com rotação automática. O CN do certificado de cada dispositivo é a identidade usada na ACL do broker (`infra/mosquitto/acl`): cada veículo só publica no próprio tópico. Para revogar um dispositivo, revogue o certificado na CA e regenere a CRL (`ca.crl`).
+
+## Kubernetes
+
+Manifests em [`k8s/`](k8s/), aplicados pelo pipeline na ordem numérica:
+
+- `01-secret.example.yaml` é **apenas um modelo**: não aplique com valores reais versionados. Em produção os segredos vêm de um cofre (Azure Key Vault, AWS Secrets Manager ou HashiCorp Vault) via External Secrets Operator, com criptografia do etcd habilitada.
+- `05-migrate-job.yaml` roda `alembic upgrade head` como Job separado, antes do rollout.
+- O pipeline substitui a tag da imagem pelo digest (`@sha256`) da imagem assinada com cosign.
+
+## Backup e recuperação
+
+```bash
+python -m scripts.backup_db backup                          # backups/fordspec-<data>.db.enc (cifrado)
+python -m scripts.backup_db verify  backups/<arquivo>.enc   # teste de restauração, sem sobrescrever
+python -m scripts.backup_db restore backups/<arquivo>.enc fordspec.db
+```
+
+Usa uma chave própria (`BACKUP_ENC_KEY`), grava o SHA-256 ao lado de cada arquivo e mantém os `BACKUP_RETENTION` mais recentes (padrão: 14). PostgreSQL exige o cliente `pg_dump` no PATH.
 
 ---
 

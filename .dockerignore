@@ -1,4 +1,3 @@
-# Nada de segredos, dados locais, ambientes virtuais ou histórico git na imagem
 .git
 .github
 .venv

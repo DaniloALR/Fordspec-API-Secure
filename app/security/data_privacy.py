@@ -1,13 +1,3 @@
-"""Criptografia local de dados (em repouso) e privacidade (LGPD).
-
-Sprint 3:
-- Chaves vêm de DATA_ENC_KEYS (sem fallback hardcoded) e são derivadas com HKDF-SHA256.
-- MultiFernet permite rotação: a 1ª chave cifra, todas decifram; `recriptografar`
-  migra dados antigos para a chave nova.
-- `EncryptedString`: coluna SQLAlchemy cifrada/decifrada de forma transparente
-  (AES-128-CBC + HMAC-SHA256 via Fernet — confidencialidade + integridade).
-- Pseudonimização com HMAC-SHA256 (chave secreta), não apenas hash com salt.
-"""
 import base64
 import hashlib
 import hmac
@@ -42,13 +32,10 @@ def descriptografar(token: str) -> str:
 
 
 def recriptografar(token: str) -> str:
-    """Re-cifra um valor com a chave primária atual (rotina de rotação de chaves)."""
     return _cifrador.rotate(token.encode("ascii")).decode("ascii")
 
 
 class EncryptedString(TypeDecorator):
-    """Coluna de texto cifrada em repouso; a aplicação só enxerga o texto claro."""
-
     impl = Text
     cache_ok = True
 
