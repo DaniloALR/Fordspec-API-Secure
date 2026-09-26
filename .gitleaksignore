@@ -1,4 +1,4 @@
-# Achados revisados e aceitos. Cada linha = fingerprint do Gitleaks + justificativa.
-# Senha FICTÍCIA de usuário de simulação (ambiente efêmero de CI), já removida do código
-# no commit seguinte; a entrada existe apenas porque o Gitleaks varre o histórico todo.
-9368b69e41e9a0eedf0ea6d5e184707410650f37:scripts/simulate_traffic.py:generic-api-key:68
+﻿# Achados revisados e aceitos. Cada linha = fingerprint do Gitleaks + justificativa.
+# Senha FICTÃCIA de usuÃ¡rio de simulaÃ§Ã£o (ambiente efÃªmero de CI), jÃ¡ removida do cÃ³digo
+# no commit seguinte; a entrada existe apenas porque o Gitleaks varre o histÃ³rico todo.
+a97e7c7996574d271a75115f775d71bfc9725cdc:scripts/simulate_traffic.py:generic-api-key:68
