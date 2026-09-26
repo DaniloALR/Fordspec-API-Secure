@@ -227,6 +227,8 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: image
+      # rate limit relaxado SÓ neste container efêmero: senão o próprio limite (429)
+      # bloqueia o scanner e o DAST deixa de testar as rotas (falso negativo).
       - name: Sobe a API em modo staging (segredos efêmeros de CI)
         run: |
           docker load -i image.tar
@@ -236,7 +238,7 @@ jobs:
             -e DATABASE_URL=sqlite:////tmp/ci.db \
             -e JWT_SECRET="$(gen)" -e DATA_ENC_KEYS="$(gen)" -e HMAC_SECRET="$(gen)" \
             -e PSEUDO_SALT="$(gen)" -e METRICS_TOKEN="$(gen)" \
-            -e ALLOWED_HOSTS=localhost,127.0.0.1 \
+            -e ALLOWED_HOSTS=localhost,127.0.0.1             -e RATE_LIMIT_DEFAULT=100000 -e RATE_LIMIT_LOGIN=100000 -e RATE_LIMIT_REFRESH=100000 \
             --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges \
             fordspec-api:${{ github.sha }}
           for i in $(seq 1 30); do curl -fs http://localhost:8000/ && break; sleep 2; done

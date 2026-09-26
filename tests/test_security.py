@@ -262,7 +262,8 @@ class TestHardening:
     def test_headers_de_seguranca_e_trace_id(self, client):
         r = client.get("/")
         for h in ("Strict-Transport-Security", "X-Content-Type-Options", "X-Frame-Options",
-                  "Content-Security-Policy", "Referrer-Policy", "X-Request-ID"):
+                  "Content-Security-Policy", "Referrer-Policy", "X-Request-ID",
+                  "Cross-Origin-Resource-Policy"):
             assert h in r.headers
         assert r.headers["Content-Security-Policy"].startswith("default-src 'none'")
 

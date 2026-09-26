@@ -199,6 +199,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         resp.headers["Content-Security-Policy"] = _CSP_DOCS if docs else _CSP_API
         resp.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
         resp.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+        resp.headers["Cross-Origin-Resource-Policy"] = "same-origin"  # achado do ZAP (90004)
         resp.headers["Cache-Control"] = "no-store"
         return resp
 

@@ -8,3 +8,4 @@
 10020	FAIL	(Missing Anti-clickjacking Header)
 10021	FAIL	(X-Content-Type-Options Missing)
 10035	FAIL	(Strict-Transport-Security Missing)
+90004	FAIL	(Cross-Origin-Resource-Policy Header Missing)
