@@ -1,17 +1,3 @@
-"""Cliente MQTT seguro para telemetria FordSpec (dispositivo e serviço de ingestão).
-
-Segurança do transporte:
-- Somente MQTT sobre TLS (porta 8883); conexão em texto claro é recusada.
-- TLS >= 1.2, verificação do certificado do broker e do hostname.
-- mTLS: cada dispositivo se autentica com o próprio certificado (CN = device_id);
-  o broker (Mosquitto) usa o CN como usuário e aplica ACL por tópico.
-- QoS 1 (entrega ao menos uma vez) + anti-replay na camada de aplicação.
-
-Uso:
-  python -m iot.mqtt_secure_client publish   --device ranger-demo-001
-  python -m iot.mqtt_secure_client subscribe
-Variáveis: MQTT_HOST, MQTT_PORT, MQTT_CA, MQTT_CERT, MQTT_KEY, IOT_HMAC_MASTER_KEY.
-"""
 import argparse
 import json
 import os
@@ -51,7 +37,7 @@ def chave_mestra() -> bytes:
 
 
 def _cliente(client_id: str):
-    import paho.mqtt.client as mqtt  # import tardio: testes não exigem broker
+    import paho.mqtt.client as mqtt
 
     porta = int(os.getenv("MQTT_PORT", str(PORTA_TLS)))
     if porta == 1883:
@@ -75,7 +61,7 @@ def publicar(device_id: str, intervalo: float, quantidade: int, ataque: bool = F
     try:
         for _ in range(quantidade):
             dados = {
-                "velocidade_kmh": round(random.uniform(0, 140), 1),  # dados simulados  # nosec B311
+                "velocidade_kmh": round(random.uniform(0, 140), 1),  # nosec B311
                 "rpm": random.randint(800, 4500),  # nosec B311
                 "temp_motor_c": round(random.uniform(80, 105), 1),  # nosec B311
                 "lat": -23.5613 + random.uniform(-0.01, 0.01),  # nosec B311
@@ -86,8 +72,6 @@ def publicar(device_id: str, intervalo: float, quantidade: int, ataque: bool = F
             log("telemetria_publicada", device_id=device_id)
             time.sleep(intervalo)
         if ataque and ultima:
-            # SIMULAÇÃO de ataque, só para validar detecção/alertas no ambiente local:
-            # 1) replay da última mensagem capturada; 2) mensagem forjada sem a chave.
             c.publish(topico, ultima, qos=1).wait_for_publish(timeout=10)
             forjada = assinar(device_id, {"velocidade_kmh": 0},
                               b"chave-roubada-errada-de-32-bytes!!")
@@ -103,7 +87,6 @@ def assinar_topico():
 
     mensagens = Counter("fordspec_iot_messages_total",
                         "Mensagens de telemetria por resultado.", ["result"])
-    # séries pré-inicializadas em 0 (increase() precisa de amostra anterior ao ataque)
     for resultado in ("aceita", "assinatura_invalida", "replay", "timestamp_fora_da_janela",
                       "device_diferente_do_topico", "schema_invalido", "json_invalido",
                       "payload_grande", "device_id_invalido", "nonce_invalido",
@@ -125,7 +108,6 @@ def assinar_topico():
             mensagens.labels(result="aceita").inc()
             log("telemetria_aceita", device_id=msg["device_id"], dados=msg["data"])
         except TelemetryRejected as exc:
-            # alerta: assinatura inválida/replay indicam dispositivo clonado ou MITM
             mensagens.labels(result=exc.motivo.split(":")[0]).inc()
             log("telemetria_rejeitada", nivel="WARNING", device_topico=device,
                 motivo=exc.motivo)

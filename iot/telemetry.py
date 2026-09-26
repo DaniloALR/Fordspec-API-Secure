@@ -1,12 +1,3 @@
-"""Mensagens de telemetria veicular assinadas (camada de aplicação sobre MQTT/TLS).
-
-TLS protege o canal; esta camada protege a MENSAGEM de ponta a ponta:
-- HMAC-SHA256 com chave POR DISPOSITIVO (derivada da chave mestra): um dispositivo
-  comprometido não consegue forjar mensagens de outros.
-- timestamp + nonce: bloqueia replay (mensagem capturada e reenviada).
-- validação estrita de schema, faixas e tamanho (entrada não confiável).
-- minimização de localização (LGPD): coordenadas reduzidas a ~110 m.
-"""
 import hashlib
 import hmac
 import json
@@ -24,7 +15,6 @@ DEVICE_ID_RE = re.compile(r"^[a-z0-9-]{3,40}$")
 NONCE_RE = re.compile(r"^[0-9a-f]{32}$")
 CAMPOS = {"v", "device_id", "ts", "nonce", "data", "sig"}
 
-# campo → (mínimo, máximo)
 FAIXAS = {
     "velocidade_kmh": (0, 300),
     "rpm": (0, 9000),
@@ -69,8 +59,6 @@ def assinar(device_id: str, dados: dict, chave: bytes, agora: float | None = Non
 
 
 class NonceCache:
-    """Nonces vistos dentro da janela de validade (LRU com limite de memória)."""
-
     def __init__(self, ttl: int = 2 * MAX_CLOCK_SKEW_S, limite: int = 100_000):
         self.ttl = ttl
         self.limite = limite
@@ -78,7 +66,6 @@ class NonceCache:
         self._lock = threading.Lock()
 
     def registrar(self, chave: str, agora: float) -> bool:
-        """True se o nonce é novo; False se já foi visto (replay)."""
         with self._lock:
             while self._itens:
                 antigo, ts = next(iter(self._itens.items()))
@@ -101,7 +88,6 @@ def minimizar_localizacao(dados: dict) -> dict:
 
 def verificar(bruto: bytes, chave_mestra: bytes, nonces: NonceCache,
               device_do_topico: str | None = None, agora: float | None = None) -> dict:
-    """Valida e retorna a mensagem; lança TelemetryRejected com o motivo."""
     agora = agora if agora is not None else time.time()
     if len(bruto) > MAX_PAYLOAD_BYTES:
         raise TelemetryRejected("payload_grande")
@@ -118,7 +104,6 @@ def verificar(bruto: bytes, chave_mestra: bytes, nonces: NonceCache,
     if device_do_topico is not None and device_do_topico != device_id:
         raise TelemetryRejected("device_diferente_do_topico")
 
-    # assinatura antes de qualquer outra regra de negócio
     esperado = hmac.new(chave_dispositivo(chave_mestra, device_id), _canonico(msg),
                         hashlib.sha256).hexdigest()
     if not isinstance(msg["sig"], str) or not hmac.compare_digest(esperado, msg["sig"]):
@@ -138,7 +123,6 @@ def verificar(bruto: bytes, chave_mestra: bytes, nonces: NonceCache,
                 or not math.isfinite(valor) or not minimo <= valor <= maximo):
             raise TelemetryRejected(f"valor_fora_da_faixa:{campo}")
 
-    # nonce registrado só depois de tudo validado (mensagem inválida não consome nonce)
     if not nonces.registrar(f"{device_id}:{msg['nonce']}", agora):
         raise TelemetryRejected("replay")
 

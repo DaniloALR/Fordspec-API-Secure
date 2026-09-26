@@ -28,7 +28,6 @@ class InvalidAttribute(DomainError):
 
 
 class AuthenticationFailed(DomainError):
-    # mensagem sempre genérica: não revela se o usuário existe ou está bloqueado
     status = 401
     error = "invalid_credentials"
 

@@ -1,4 +1,3 @@
-# Python
 __pycache__/
 *.py[cod]
 venv/
@@ -7,7 +6,6 @@ venv/
 .coverage
 htmlcov/
 
-# Dados locais / segredos (nunca versionar)
 *.db
 *.sqlite
 .env

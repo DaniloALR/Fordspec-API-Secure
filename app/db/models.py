@@ -54,19 +54,17 @@ class SpecRequest(Base):
     brand = Column(String(60))
     model = Column(String(60))
     version = Column(String(160))
-    # dono da ficha, pseudonimizado (LGPD) — usado no controle de acesso por objeto
     requested_by = Column(String(40), nullable=True, index=True)
     created_at = Column(DateTime, default=_utcnow)
 
 
 class AppUser(Base):
-    """Usuários persistidos (antes: dict em memória com senhas no código)."""
     __tablename__ = "app_user"
     id = Column(Integer, primary_key=True)
     username = Column(String(40), unique=True, nullable=False, index=True)
     password_hash = Column(String(100), nullable=False)
     role = Column(String(20), nullable=False)
-    email = Column(EncryptedString, nullable=True)  # cifrado em repouso
+    email = Column(EncryptedString, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     failed_attempts = Column(Integer, default=0, nullable=False)
     locked_until = Column(DateTime, nullable=True)
@@ -76,7 +74,6 @@ class AppUser(Base):
 
 
 class AuditEvent(Base):
-    """Trilha de auditoria à prova de adulteração (hash encadeado)."""
     __tablename__ = "audit_event"
     id = Column(Integer, primary_key=True)
     ts = Column(DateTime, default=_utcnow, nullable=False, index=True)

@@ -6,8 +6,6 @@ from app.services.services import CatalogService, VehicleService
 from app.schemas.schemas import AttributeOut, VehicleOut
 from app.security.rbac import require_permission
 
-# Sprint 3: catálogo passa a exigir autenticação — a base curada é o ativo de
-# inteligência competitiva e ficava exposta a scraping anônimo (OWASP API6:2023).
 router = APIRouter(prefix="/v1", tags=["catalog & vehicles"],
                    dependencies=[Depends(require_permission("catalog:read"))])
 catalog_service = CatalogService()

@@ -1,9 +1,3 @@
-# Ambiente completo FordSpec: API + Postgres + MQTT/TLS + observabilidade.
-#   1) cp .env.example .env  (preencher)      2) sh scripts/gen_dev_certs.sh
-#   3) mkdir secrets && gravar secrets/metrics_token.txt e secrets/alert_webhook_url.txt
-#   4) docker compose up -d --build
-# Portas publicadas apenas em 127.0.0.1. Banco e broker ficam em rede interna.
-
 x-hardening: &hardening
   read_only: true
   cap_drop: [ALL]
@@ -18,7 +12,7 @@ services:
   db:
     <<: *hardening
     image: postgres:16.4-alpine
-    cap_add: [CHOWN, SETUID, SETGID, FOWNER, DAC_READ_SEARCH]  # mínimo exigido pelo entrypoint
+    cap_add: [CHOWN, SETUID, SETGID, FOWNER, DAC_READ_SEARCH]
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -64,13 +58,13 @@ services:
     <<: *hardening
     image: eclipse-mosquitto:2.0.20
     user: "1883:1883"
-    ports: ["127.0.0.1:8883:8883"]   # somente TLS; 1883 não é exposta
+    ports: ["127.0.0.1:8883:8883"]
     volumes:
       - ./infra/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
       - ./infra/mosquitto/acl:/mosquitto/config/acl:ro
       - ./infra/certs:/mosquitto/certs:ro
       - mqtt-data:/mosquitto/data
-    networks: [iot, edge]  # edge: rede publicada para os veículos
+    networks: [iot, edge]
 
   iot-ingest:
     <<: *hardening
@@ -84,7 +78,6 @@ services:
       IOT_HMAC_MASTER_KEY: ${IOT_HMAC_MASTER_KEY}
     volumes:
       - ./infra/certs:/certs:ro
-    # mesma imagem da API, mas o serviço expõe só as métricas em 9101
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9101/metrics', timeout=2)"]
       interval: 15s
@@ -150,7 +143,7 @@ services:
 networks:
   frontend: {}
   edge: {}
-  backend: {internal: true}     # banco sem acesso à internet
+  backend: {internal: true}
   iot: {internal: true}
   monitoring: {internal: true}
 

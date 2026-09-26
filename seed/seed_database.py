@@ -21,15 +21,10 @@ UNIT_HINTS = {
 def infer_type_unit(name: str):
     if name in UNIT_HINTS:
         return UNIT_HINTS[name]
-    return ("boolean", None)  # maioria é X/0
+    return ("boolean", None)
 
 
 def seed_users(db):
-    """Cria um usuário por perfil, se não existir.
-
-    Sprint 3: senhas não ficam mais no código. Vêm de SEED_PASSWORD_<PERFIL>
-    (ex.: SEED_PASSWORD_GESTOR) ou são geradas aleatoriamente e exibidas UMA vez.
-    """
     for role in ROLES:
         if db.query(models.AppUser).filter_by(username=role).first():
             continue
@@ -53,7 +48,6 @@ def run():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
-        # idempotência simples: limpa antes de semear
         db.query(models.SpecValue).delete()
         db.query(models.VehicleVersion).delete()
         db.query(models.Attribute).delete()

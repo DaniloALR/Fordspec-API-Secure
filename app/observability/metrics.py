@@ -1,4 +1,3 @@
-"""Métricas Prometheus da API (expostas em /metrics, coletadas pelo Prometheus)."""
 from prometheus_client import CollectorRegistry, Counter, Histogram
 
 registry = CollectorRegistry(auto_describe=True)
@@ -59,9 +58,6 @@ SPECS_GENERATED = Counter(
 )
 
 
-# Pré-inicializa as séries com rótulos conhecidos em 0. Sem isso a série só nasce no
-# 1º evento e increase()/rate() não têm amostra anterior: o alerta do 1º ataque não
-# dispara (achado no workflow de evidências).
 for _r in ("senha_incorreta", "usuario_inexistente", "conta_bloqueada", "conta_inativa"):
     LOGIN_FAILURES.labels(reason=_r)
 for _r in ("ausente", "expirado", "invalido", "sessao_invalidada", "refresh_invalido"):

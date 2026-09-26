@@ -1,11 +1,3 @@
-"""Controle de acesso por perfil (RBAC) — Brigadista, Gestor, Administrador.
-
-Sprint 3:
-- Matriz de permissões explícita (menor privilégio); rotas exigem permissões,
-  não nomes de perfil.
-- O perfil vem do BANCO a cada requisição, não do token: rebaixar/desativar um
-  usuário tem efeito imediato. `ver` do token precisa bater com `token_version`.
-"""
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer

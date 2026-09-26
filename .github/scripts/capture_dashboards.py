@@ -1,4 +1,3 @@
-"""Captura prints de Grafana e Prometheus do ambiente docker compose (workflow de evidências)."""
 import os
 import sys
 import time
@@ -33,7 +32,6 @@ with sync_playwright() as p:
     page.wait_for_load_state("networkidle")
     time.sleep(3)
     if "/login" in page.url:
-        # primeira entrada pode pedir troca de senha: "Skip"
         try:
             page.click("text=Skip", timeout=5_000)
         except Exception:

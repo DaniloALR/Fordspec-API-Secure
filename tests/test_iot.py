@@ -1,4 +1,3 @@
-"""Testes da segurança de telemetria IoT (MQTT/TLS + mensagem assinada)."""
 import json
 import ssl
 
@@ -38,7 +37,6 @@ def test_adulteracao_detectada():
 
 
 def test_chave_de_outro_dispositivo_nao_forja():
-    # dispositivo comprometido tenta publicar em nome de outro
     forjada = _msg(device="ranger-vitima-002", chave=chave_dispositivo(MESTRA, DEVICE))
     _rejeita(forjada, "assinatura_invalida")
 

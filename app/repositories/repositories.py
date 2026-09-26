@@ -3,7 +3,6 @@ from app.db import models
 
 
 def _literal(texto: str) -> str:
-    """Escapa curingas do LIKE (% e _): ilike vira comparação case-insensitive exata."""
     return texto.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 

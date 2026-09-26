@@ -1,22 +1,9 @@
-"""Rotina de backup e recuperação cifrada do banco FordSpec.
-
-  python -m scripts.backup_db backup            # gera backups/fordspec-<ts>.db.enc
-  python -m scripts.backup_db verify  <arquivo> # teste de restauração (sem sobrescrever)
-  python -m scripts.backup_db restore <arquivo> <destino.db>
-
-- Chave própria (BACKUP_ENC_KEY), separada da chave dos dados: vazamento de uma não
-  compromete a outra. Fernet = AES + HMAC (confidencialidade e integridade).
-- SHA-256 do arquivo cifrado gravado ao lado (detecta corrupção no armazenamento).
-- Retenção: mantém os BACKUP_RETENTION mais recentes (padrão 14).
-- SQLite: API de backup online (consistente com a aplicação rodando).
-  PostgreSQL: pg_dump -Fc (sem shell) — requer o cliente pg_dump no PATH.
-"""
 import argparse
 import functools
 import hashlib
 import os
 import sqlite3
-import subprocess  # nosec B404 - pg_dump chamado com lista de argumentos, sem shell
+import subprocess  # nosec B404
 import sys
 import tempfile
 from datetime import datetime, timezone
@@ -92,7 +79,6 @@ def _integridade_sqlite(caminho: str) -> bool:
 
 
 def verify(arquivo: Path) -> bool:
-    """Teste de restauração: decifra em diretório temporário e checa integridade."""
     with tempfile.TemporaryDirectory() as tmp:
         destino = os.path.join(tmp, "restore.db")
         Path(destino).write_bytes(_decifrar(arquivo))

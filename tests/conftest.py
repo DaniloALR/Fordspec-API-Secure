@@ -1,8 +1,6 @@
-"""Fixtures: banco SQLite temporário semeado, segredos de teste e clientes por perfil."""
 import os
 import tempfile
 
-# Configura o ambiente ANTES de importar a aplicação (config é lida no import).
 _TMP = tempfile.mkdtemp(prefix="fordspec-test-")
 os.environ.update({
     "APP_ENV": "test",
@@ -40,7 +38,6 @@ def _banco():
 
 @pytest.fixture(autouse=True)
 def _reset_estado():
-    """Isola os testes: rate limit, monitor, denylist e lockouts de conta."""
     limiter.limpar()
     monitor.limpar()
     denylist.limpar()
@@ -71,5 +68,4 @@ def auth_header(tokens: dict) -> dict:
 
 @pytest.fixture
 def headers(client):
-    """Headers Authorization por perfil: headers['gestor'] etc."""
     return {role: auth_header(login(client, role)) for role in SENHAS}

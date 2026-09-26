@@ -1,11 +1,3 @@
-"""Configuração centralizada e gestão de segredos.
-
-Todos os segredos vêm de variáveis de ambiente (ou de um arquivo .env local,
-nunca versionado). Em produção (APP_ENV=production) a aplicação NÃO sobe se um
-segredo estiver ausente ou fraco — elimina o antigo fallback hardcoded.
-Em desenvolvimento, gera um segredo aleatório uma única vez (.dev-secrets.json,
-ignorado pelo git); em teste (APP_ENV=test), gera segredos efêmeros.
-"""
 import json
 import logging
 import os
@@ -26,11 +18,6 @@ class InsecureConfigError(RuntimeError):
 
 
 def ler_env(name: str, default: str = "") -> str:
-    """Lê NAME ou, se NAME_FILE estiver definido, o conteúdo desse arquivo.
-
-    Permite montar segredos como arquivos (Kubernetes/Docker secrets) em vez de
-    variáveis de ambiente, que vazam em `ps e`, dumps e logs de crash.
-    """
     caminho = os.getenv(f"{name}_FILE")
     if caminho:
         with open(caminho, encoding="utf-8") as f:
@@ -46,11 +33,6 @@ DEV_SECRETS_FILE = os.getenv("DEV_SECRETS_FILE", ".dev-secrets.json")
 
 
 def _segredo_dev(name: str) -> str:
-    """Gera o segredo uma vez e o reaproveita (arquivo local, fora do git).
-
-    Sem isso, seed e API teriam chaves diferentes e os dados cifrados ficariam
-    ilegíveis após cada reinício.
-    """
     dados = {}
     if os.path.exists(DEV_SECRETS_FILE):
         with open(DEV_SECRETS_FILE, encoding="utf-8") as f:
@@ -81,7 +63,6 @@ class Settings:
     app_env: str
     jwt_secret: str
     data_enc_keys: list[str]
-    hmac_secret: str
     pseudo_salt: str
     metrics_token: str | None
     jwt_issuer: str = "fordspec-api"
@@ -111,8 +92,6 @@ def load_settings() -> Settings:
     app_env = os.getenv("APP_ENV", "development")
     is_prod = app_env == "production"
 
-    # DATA_ENC_KEYS aceita várias chaves separadas por vírgula (rotação):
-    # a primeira cifra, todas decifram.
     enc_keys = _env_list("DATA_ENC_KEYS", "")
     if not enc_keys or any(len(k) < MIN_SECRET_LEN for k in enc_keys):
         enc_keys = [_secret("DATA_ENC_KEYS", is_prod)]
@@ -125,7 +104,6 @@ def load_settings() -> Settings:
         app_env=app_env,
         jwt_secret=_secret("JWT_SECRET", is_prod),
         data_enc_keys=enc_keys,
-        hmac_secret=_secret("HMAC_SECRET", is_prod),
         pseudo_salt=_secret("PSEUDO_SALT", is_prod),
         metrics_token=metrics_token,
         access_token_minutes=int(os.getenv("ACCESS_TOKEN_MINUTES", "15")),

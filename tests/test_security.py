@@ -1,4 +1,3 @@
-"""Testes de segurança — evidência executável da Sprint 3 (rodam no pipeline)."""
 import json
 import logging
 from datetime import datetime, timedelta, timezone
@@ -13,7 +12,7 @@ from app.routers.specs import _celula_csv_segura, _nome_arquivo_seguro
 from app.security import data_privacy
 from app.security.audit import logger as security_logger
 from app.security.auth import ALGORITHM
-from tests.conftest import SENHAS, VERSAO, auth_header, login, novo_client
+from tests.conftest import VERSAO, auth_header, login, novo_client
 
 SPEC = {"brand": "Ford", "model": "Ranger", "version": VERSAO, "attributes": ["Potência"]}
 
@@ -45,9 +44,6 @@ def logs():
     security_logger.removeHandler(h)
 
 
-# ---------------------------------------------------------------------------
-# JWT seguro
-# ---------------------------------------------------------------------------
 class TestJWT:
     def test_sem_token_401(self, client):
         assert client.post("/v1/specs", json=SPEC).status_code == 401
@@ -94,7 +90,6 @@ class TestJWT:
         assert r.status_code == 200
         t2 = r.json()
         assert t2["refresh_token"] != t1["refresh_token"]
-        # reapresentar o refresh antigo = roubo → 401 e TODAS as sessões revogadas
         r = client.post("/v1/auth/refresh", json={"refresh_token": t1["refresh_token"]})
         assert r.status_code == 401
         assert client.get("/v1/auth/me", headers=auth_header(t2)).status_code == 401
@@ -110,9 +105,6 @@ class TestJWT:
         assert r.status_code == 422
 
 
-# ---------------------------------------------------------------------------
-# Autenticação: mensagens genéricas, lockout e brute force
-# ---------------------------------------------------------------------------
 class TestLogin:
     def test_mensagem_generica(self, client):
         r1 = client.post("/v1/auth/login", json={"username": "gestor", "password": "errada123"})
@@ -128,7 +120,6 @@ class TestLogin:
         for _ in range(settings.login_max_failures):
             atacante.post("/v1/auth/login",
                           json={"username": "vitima.lockout", "password": "chute-errado"})
-        # conta bloqueada: nem a senha certa entra (outro IP, para não cair no rate limit)
         r = novo_client("10.0.0.67").post(
             "/v1/auth/login", json={"username": "vitima.lockout", "password": "SenhaForte-12345"})
         assert r.status_code == 401
@@ -145,11 +136,7 @@ class TestLogin:
         assert alertas and alertas[-1]["nivel"] == "CRITICAL"
 
 
-# ---------------------------------------------------------------------------
-# RBAC — Brigadista / Gestor / Administrador
-# ---------------------------------------------------------------------------
 MATRIZ = [
-    # (perfil, método, rota, status esperado)
     ("brigadista", "GET", "/v1/attributes", 200),
     ("brigadista", "GET", f"/v1/specs/export?version={VERSAO}", 403),
     ("brigadista", "GET", "/v1/admin/users", 403),
@@ -217,9 +204,6 @@ class TestBOLA:
         assert r.status_code == 422
 
 
-# ---------------------------------------------------------------------------
-# Validação de entrada
-# ---------------------------------------------------------------------------
 class TestValidacao:
     @pytest.mark.parametrize("versao", [
         "' OR 1=1 --", "Raptor; DROP TABLE spec_value", "<script>alert(1)</script>",
@@ -255,9 +239,6 @@ class TestValidacao:
         assert _celula_csv_segura("250") == "250"
 
 
-# ---------------------------------------------------------------------------
-# Hardening da API
-# ---------------------------------------------------------------------------
 class TestHardening:
     def test_headers_de_seguranca_e_trace_id(self, client):
         r = client.get("/")
@@ -310,9 +291,6 @@ class TestHardening:
             load_settings()
 
 
-# ---------------------------------------------------------------------------
-# Criptografia local e LGPD
-# ---------------------------------------------------------------------------
 class TestCriptografia:
     def test_email_cifrado_no_banco_e_mascarado_na_api(self, client, headers):
         with engine.connect() as conn:
@@ -348,9 +326,6 @@ class TestCriptografia:
         assert a in donos and "brigadista" not in donos
 
 
-# ---------------------------------------------------------------------------
-# Logs, auditoria e métricas
-# ---------------------------------------------------------------------------
 class TestObservabilidade:
     def test_log_estruturado_sem_segredos(self, client, logs):
         client.post("/v1/auth/login",

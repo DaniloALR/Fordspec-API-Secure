@@ -1,13 +1,3 @@
-"""Hardening da API: rate limit, limite de payload, contexto/observabilidade e headers.
-
-Sprint 3:
-- Rate limit por regra (login 5/min, refresh 10/min, geral 60/min) com Retry-After.
-- Limite de tamanho do corpo (Content-Length e corpo em streaming) → 413.
-- RequestContextMiddleware: trace_id (X-Request-ID), log de acesso JSON e métricas.
-- Headers de segurança endurecidos; CSP relaxada apenas para /docs em dev.
-"""
-import hashlib
-import hmac
 import re
 import threading
 import time
@@ -42,8 +32,6 @@ def _ip(request_or_scope) -> str:
 
 
 class RateLimiter:
-    """Janela deslizante em memória. Produção com várias réplicas: Redis."""
-
     def __init__(self):
         self._hits: dict[str, deque] = defaultdict(deque)
         self._lock = threading.Lock()
@@ -65,7 +53,7 @@ class RateLimiter:
             if len(janela) >= limite:
                 return False, int(janela[0] + WINDOW_SECONDS - agora) + 1
             janela.append(agora)
-            if len(self._hits) > 10_000:  # evita crescimento ilimitado de memória
+            if len(self._hits) > 10_000:
                 for k in [k for k, v in self._hits.items() if not v]:
                     del self._hits[k]
             return True, 0
@@ -95,15 +83,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
 
 class _PayloadTooLarge(HTTPException):
-    # HTTPException: o FastAPI a repassa intacta ao ler o corpo (senão viraria 400)
     def __init__(self, max_bytes: int):
         super().__init__(status_code=413,
                          detail=f"Corpo da requisição excede {max_bytes} bytes.")
 
 
 class BodySizeLimitMiddleware:
-    """ASGI puro: bloqueia corpos grandes mesmo sem Content-Length (chunked)."""
-
     def __init__(self, app, max_bytes: int):
         self.app = app
         self.max_bytes = max_bytes
@@ -154,8 +139,6 @@ _REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9-]{8,64}$")
 
 
 class RequestContextMiddleware(BaseHTTPMiddleware):
-    """trace_id + log de acesso estruturado + métricas HTTP (camada mais externa)."""
-
     async def dispatch(self, request: Request, call_next):
         recebido = request.headers.get("x-request-id", "")
         trace_id = recebido if _REQUEST_ID_RE.match(recebido) else str(uuid.uuid4())
@@ -199,15 +182,6 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         resp.headers["Content-Security-Policy"] = _CSP_DOCS if docs else _CSP_API
         resp.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
         resp.headers["Cross-Origin-Opener-Policy"] = "same-origin"
-        resp.headers["Cross-Origin-Resource-Policy"] = "same-origin"  # achado do ZAP (90004)
+        resp.headers["Cross-Origin-Resource-Policy"] = "same-origin"
         resp.headers["Cache-Control"] = "no-store"
         return resp
-
-
-def assinar_payload(corpo: bytes) -> str:
-    return hmac.new(settings.hmac_secret.encode(), corpo, hashlib.sha256).hexdigest()
-
-
-def verificar_assinatura(corpo: bytes, assinatura: str) -> bool:
-    esperado = assinar_payload(corpo)
-    return hmac.compare_digest(esperado, assinatura or "")
