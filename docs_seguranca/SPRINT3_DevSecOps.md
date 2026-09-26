@@ -4,10 +4,13 @@
 **Grupo:** Danilo Affonso Luz Rios (RM 554791) · Thiago Feltrin Geraldes (RM 555805) · Lucca Natario do Vale (RM 95688)
 **Versão da solução:** 2.0.0 (Sprint 3), evolução da 1.1.0 (Sprint 2)
 
+**Repositório:** <https://github.com/DaniloALR/Fordspec-api-secure> (pipeline em *Actions*)
+
 > Este documento consolida as quatro subetapas da Sprint 3. Cada seção aponta para o
-> código, a configuração e o commit que a comprovam. Tudo o que está marcado como
-> **executado** foi rodado e tem a saída salva em `docs_seguranca/`. O que depende do
-> GitHub Actions ou do Docker está marcado como **executa no pipeline**.
+> código, a configuração e o commit que a comprovam. Todas as evidências foram
+> **executadas de fato**: localmente (saídas em `docs_seguranca/`) e no GitHub Actions
+> (pipeline DevSecOps e ambiente completo via `docker compose`, com prints em
+> `docs_seguranca/prints/`).
 
 ## Sumário
 
@@ -157,7 +160,16 @@ flowchart LR
 4. Com o merge em `main`, os jobs 6 e 7 geram e testam a imagem; o job 8 aguarda **aprovação manual** do responsável (ambiente `production`), publica e assina a imagem, roda o Job de migração e faz o *rollout* com `maxUnavailable: 0`.
 5. Em produção, Prometheus/Alertmanager e Loki monitoram o comportamento (seção 3). Toda segunda-feira o pipeline roda de novo e o Dependabot abre PRs de atualização.
 
-**Configuração necessária no GitHub** (uma vez): ativar *branch protection* em `main` com os checks obrigatórios, *secret scanning* com *push protection*, *private vulnerability reporting* ([SECURITY.md](../SECURITY.md)), ambiente `production` com revisores obrigatórios e o secret `KUBE_CONFIG`.
+**Configuração aplicada no repositório GitHub** (feita e verificada via API):
+
+| Controle | Estado |
+|----------|--------|
+| *Branch protection* em `main` | ✅ 8 checks obrigatórios (jobs 1–7), branch atualizada antes do merge, 1 aprovação, revisões antigas descartadas em novo push, conversas resolvidas, sem *force push* e sem exclusão |
+| Ambiente `production` | ✅ revisor obrigatório (aprovação manual) e deploy só a partir de `main` |
+| *Secret scanning* + *push protection* | ✅ ativos (o GitHub recusa push contendo segredo conhecido) |
+| Dependabot *alerts* + *security updates* | ✅ ativos (PRs automáticos de correção) |
+| *Private vulnerability reporting* | ✅ ativo ([SECURITY.md](../SECURITY.md)) |
+| Secret `KUBE_CONFIG` | ⏳ só quando houver cluster; sem ele o job 8 publica e assina a imagem e pula o `kubectl` |
 
 **Extensão para as outras camadas do Ford Challenge** (repositórios próprios, mesmo modelo de gates):
 
@@ -176,9 +188,30 @@ flowchart LR
 | Bandit antes/depois | **executado** (0 issues médias/altas; 1 falso positivo documentado com `nosec`) | `bandit_ANTES.txt`, `bandit_DEPOIS.txt` |
 | Checkov | **executado** (7 falhas → 0) | `checkov_DEPOIS.txt` |
 | pytest + cobertura | **executado** (81 passed, 90%) | `evidencias_testes.txt` |
-| Gitleaks, Semgrep, Trivy, ZAP, cosign | executa no pipeline (depende de GitHub Actions/Docker) | aba *Actions* e *Security* do repositório |
+| Pipeline completo no GitHub Actions | **executado**: jobs 1–7 verdes; job 8 aguardando aprovação no ambiente `production` | [run #19](https://github.com/DaniloALR/Fordspec-api-secure/actions/runs/36251371582) |
+| OWASP ZAP (DAST) | **executado**: 78 URLs, **118 regras PASS, 0 WARN, 0 FAIL** | log do job 7 |
+| Code scanning (SARIF) | **executado**: 0 alertas abertos; 3 do Trivy corrigidos; 2 do Checkov aceitos com justificativa | aba *Security* |
 
-> 📸 **Print 1:** tela do GitHub Actions com os 9 jobs verdes, capturada após o push. **Print 2:** aba *Security → Code scanning* com os SARIF de Semgrep/Checkov/Trivy.
+**Print 1:** pipeline DevSecOps no GitHub Actions. Estágios 1–7 aprovados; o deploy está bloqueado aguardando a aprovação exigida pelo ambiente `production`.
+
+![Pipeline DevSecOps no GitHub Actions](prints/05_github_actions_pipeline.png)
+
+### 1.6 O que o pipeline encontrou ao ser executado de verdade
+
+Colocar o pipeline para rodar no repositório real revelou problemas que nenhuma revisão
+manual tinha pegado. Cada um virou um commit de correção (histórico em 2.7):
+
+| # | Etapa que detectou | Achado | Correção |
+|---|--------------------|--------|----------|
+| 1 | **Dependabot** (alerta crítico) | `aquasecurity/trivy-action` < 0.35.0 teve a cadeia de suprimentos comprometida ([GHSA-69fq-xp46-6x23](https://github.com/advisories/GHSA-69fq-xp46-6x23)); a tag `0.28.0` usada no pipeline nem existia mais | actions de terceiros **fixadas por SHA de commit** (trivy v0.36.0, zap, cosign, checkov); alerta marcado como *fixed* (`c020218`) |
+| 2 | **Trivy** (bloqueou o build) | `setuptools 70.3.0` (CVE-2025-47273, HIGH, path traversal) e `msgpack 1.1.2` vendorizado no pip (GHSA-6v7p-g79w-8964, HIGH) na imagem | pip/setuptools/ensurepip removidos da imagem final, pois o runtime não instala pacotes (`b0f453d`) |
+| 3 | **OWASP ZAP** | a 1ª varredura recebeu **429** na maior parte das rotas: o próprio rate limit cegava o DAST (falso negativo) | limites relaxados **só** no container efêmero de CI (`a53673a`) |
+| 4 | **OWASP ZAP** | header `Cross-Origin-Resource-Policy` ausente (regra 90004) | header adicionado, testado e promovido a regra FAIL (`a53673a`) |
+| 5 | **Gitleaks** | senha literal no simulador de ataques (valor fictício, mas era credencial *hardcoded*) | senha aleatória; ocorrência histórica registrada em `.gitleaksignore` com justificativa (`9b8291c`) |
+| 6 | **Gitleaks** (falha da ferramenta) | `gitleaks-action@v2` quebra no 1º push de um repositório | CLI oficial com versão fixada (`0d8bfdb`) |
+| 7 | **docker compose** (workflow de evidências) | `alembic upgrade head` não encontrava o pacote `app`: **bug herdado da Sprint 2**, as migrações nunca tinham funcionado | `prepend_sys_path` + migração aplicada do zero em todo PR (`13e8720`) |
+| 8 | **docker compose** | Python 3.13 ativa `VERIFY_X509_STRICT` e **recusou** a CA de dev sem `keyUsage`: a ingestão IoT não conectava ao broker | certificados com as extensões X.509 exigidas (`cac07bc`) |
+| 9 | **Prometheus** (alertas) | séries rotuladas nasciam no 1º evento, `increase()` não enxergava o ataque e o alerta de **telemetria forjada não disparava** | séries pré-inicializadas em 0 (`9368b69`) |
 
 ---
 
@@ -395,10 +428,30 @@ pattern read  fordspec/commands/%u
 | 14 | Catálogo público (scraping do ativo) | Média | threat model (API6) | autenticação obrigatória | `34c268f` |
 | 15 | Enumeração de usuário por tempo de resposta | Baixa | revisão | bcrypt com hash *dummy* | `5e5eb46` |
 | 16 | 7 falhas de IaC | Média | Checkov | ver 2.5 | `eebeb93` |
+| 17 | Action de terceiros com supply chain comprometida (trivy-action < 0.35) | Crítica | Dependabot | pin por SHA de commit | `c020218` |
+| 18 | setuptools/msgpack vulneráveis na imagem | Alta | Trivy | pip/setuptools removidos do runtime | `b0f453d` |
+| 19 | Migrações Alembic nunca executavam (herdado da Sprint 2) | Média | docker compose | `prepend_sys_path` + teste no pipeline | `13e8720` |
+| 20 | Header CORP ausente | Baixa | OWASP ZAP | header + regra FAIL | `a53673a` |
+| 21 | DAST cego pelo rate limit (falso negativo) | Média | análise do log do ZAP | limites relaxados só no CI | `a53673a` |
+| 22 | Alerta de ataque IoT não disparava | Média | workflow de evidências | séries pré-inicializadas | `9368b69` |
 
 ### 2.7 Histórico de commits (evidência)
 
 ```text
+# correções guiadas pelo pipeline rodando no GitHub (seção 1.6)
+7b32092 test(simulacao): brute force em janela propria (rate limit de login consumia os chutes)
+9b8291c fix(secrets): Gitleaks barrou senha literal no simulador; senha passa a ser aleatoria
+9368b69 fix(observability): pre-inicializa series de metricas e amplia a simulacao de ataques
+c85018c fix(compose): healthcheck proprio para o servico de ingestao IoT (herdava o da API)
+cac07bc fix(iot): certificados de dev com extensoes X.509 exigidas pela verificacao estrita
+13e8720 fix(migrations): alembic nao encontrava o pacote app (prepend_sys_path)
+3b813db ci(evidencias): workflow que sobe o compose completo, simula ataques e captura prints
+a53673a fix(dast): ZAP bloqueado pelo proprio rate limit; adiciona Cross-Origin-Resource-Policy
+b0f453d fix(container): remove pip/setuptools/ensurepip da imagem final
+c020218 ci: fixa actions de terceiros por SHA de commit (trivy, zap, cosign, checkov)
+0d8bfdb ci: executa Gitleaks via CLI oficial (a action falha no primeiro push do repositorio)
+0400400 docs: documento consolidado da Sprint 3 (DevSecOps), STRIDE revisado, evidencias e README
+# melhorias de código e infraestrutura
 5777ab1 ci(devsecops): pipeline com Gitleaks, Semgrep, Bandit, pip-audit, Checkov, Trivy, SBOM, ZAP e deploy assinado
 eebeb93 feat(iac): Dockerfile endurecido, docker-compose seguro e manifests Kubernetes
 fd0ef59 feat(observability): Prometheus, alertas, Alertmanager, Loki/Promtail e dashboard Grafana
@@ -508,17 +561,46 @@ Dashboard provisionado: **FordSpec — Segurança e Operação** ([`fordspec-sec
 | Saúde da API | API no ar · requisições/s · taxa de 5xx · latência p95 · requisições por status |
 | Autenticação e autorização | brute force (24 h) · contas bloqueadas (24 h) · reuso de refresh (24 h) · alterações críticas (24 h) · falhas de login por motivo · acessos negados e tokens rejeitados |
 | Proteção da API e IoT | 429/413/422 por regra/rota · telemetria IoT por resultado |
-| Logs de segurança (Loki) | `{job="fordspec-api", tipo=~"seguranca|auditoria|erro"}` |
+| Logs de segurança (Loki) | `{job="fordspec-api", tipo=~"seguranca|auditoria|erro"} != "rate_limit_excedido"` |
 
-**Para gerar os prints:**
-```bash
-docker compose up -d --build
-SIM_USER=brigadista SIM_PASSWORD=<senha> python -m scripts.simulate_traffic --ciclos 3
-# abrir http://127.0.0.1:3000 → FordSpec → "FordSpec — Segurança e Operação"
-```
-O simulador gera tráfego normal e ataques (brute force, injeção, escalonamento, token `alg:none`, flood), que acionam os painéis e os alertas.
+**Como os prints abaixo foram gerados.** O workflow [`observability-evidence.yml`](../.github/workflows/observability-evidence.yml) roda no GitHub Actions e faz, de forma reprodutível:
+1. gera segredos efêmeros, `.env` e a CA/certificados de dev;
+2. sobe o `docker compose` completo em modo **produção** (Postgres, migração + seed, API, Mosquitto com mTLS, ingestão IoT, Prometheus, Alertmanager, Loki, Promtail, Grafana);
+3. roda [`scripts/simulate_traffic.py`](../scripts/simulate_traffic.py): tráfego legítimo, injeção, escalonamento de privilégio, token `alg:none`, reuso de refresh token, alteração de perfil, brute force e flood;
+4. publica telemetria real por MQTT/TLS (20 mensagens) seguida de um **replay** e de uma **mensagem forjada**, e confirma que a porta 1883 (sem TLS) não existe;
+5. captura os prints com Playwright e exporta os alertas disparados.
 
-> 📸 **Print 3:** dashboard completo durante a simulação. **Print 4:** alerta `ForcaBrutaDetectada` disparado em Prometheus → *Alerts*. **Print 5:** painel de logs do Loki filtrado por `evento="brute_force_suspeito"`.
+Para reproduzir localmente: `docker compose up -d --build` e `SIM_USER=brigadista SIM_PASSWORD=<senha> python -m scripts.simulate_traffic`, depois abrir `http://127.0.0.1:3000`.
+
+**Alertas disparados durante a simulação** ([`alertas_prometheus.json`](prints/alertas_prometheus.json)):
+
+| Alerta | Severidade | Playbook | Ataque simulado |
+|--------|-----------|----------|-----------------|
+| `ForcaBrutaDetectada` | critical | PB-01 | 8 senhas erradas para `gestor` a partir do mesmo IP |
+| `ContaBloqueada` | warning | PB-01 | lockout de `gestor` após 5 falhas |
+| `ReusoDeRefreshToken` | critical | PB-02 | refresh token já usado reapresentado |
+| `AlteracaoDePerfil` | info | PB-03 | administrador promove usuário a gestor |
+| `TelemetriaIoTForjadaOuReplay` | critical | PB-06 | replay e mensagem com assinatura inválida via MQTT |
+
+Os demais alertas ficaram inativos, como esperado: os limiares de pico (> 20 acessos negados, > 50 injeções, 5xx > 5%) não são atingidos por uma simulação curta, e a API não caiu.
+
+**Print 2:** dashboard *FordSpec — Segurança e Operação* durante a simulação. Aparecem 2 alertas de brute force, 1 conta bloqueada, 2 reusos de refresh, 4 alterações críticas, 429 por regra, 422 em `/v1/specs`, 20 telemetrias aceitas + replay + assinatura inválida, e os logs de segurança no Loki.
+
+![Dashboard Grafana](prints/01_grafana_dashboard_seguranca.png)
+
+**Print 3:** Prometheus → *Alerts*, com os alertas disparados (vermelho) agrupados por regra.
+
+![Alertas no Prometheus](prints/02_prometheus_alertas.png)
+
+**Print 4:** Prometheus → *Targets*: API (com token no `/metrics`), ingestão IoT e o próprio Prometheus coletados.
+
+![Targets do Prometheus](prints/03_prometheus_targets.png)
+
+**Print 5:** Grafana Explore/Loki com eventos de segurança e auditoria (brute force, conta bloqueada, reuso de refresh, alteração de perfil), sem o ruído de 429.
+
+![Logs de segurança no Loki](prints/04_loki_logs_seguranca.png)
+
+Amostra dos logs reais do ambiente compose (um de cada evento, incluindo a ingestão IoT rejeitando `replay` e `assinatura_invalida`): [`logs_amostra_compose.jsonl`](prints/logs_amostra_compose.jsonl).
 
 ### 3.5 Plano de resposta a incidentes
 
@@ -732,7 +814,9 @@ O app fica em outro repositório; abaixo estão os **requisitos obrigatórios** 
 - [x] IaC scanning: Checkov (0 falhas)
 - [x] DAST: OWASP ZAP
 - [x] Deploy com aprovação manual, imagem assinada (cosign) e fixada por digest
-- [ ] Branch protection e ambiente `production` configurados no GitHub *(configuração no repositório remoto, ver 1.4)*
+- [x] Branch protection e ambiente `production` com aprovação obrigatória configurados no GitHub (1.4)
+- [x] Pipeline executado no GitHub Actions: jobs 1–7 aprovados, deploy aguardando aprovação (1.5)
+- [x] Actions de terceiros fixadas por SHA; 0 alertas de code scanning/Dependabot abertos (1.6)
 
 **Código e infraestrutura**
 - [x] Nenhum segredo no código; produção recusa segredo fraco
@@ -752,7 +836,8 @@ O app fica em outro repositório; abaixo estão os **requisitos obrigatórios** 
 - [x] Métricas Prometheus + 14 regras de alerta ligadas a playbooks
 - [x] Dashboard Grafana + Loki provisionados
 - [x] Plano de resposta a incidentes com 6 playbooks e SLA por severidade
-- [ ] Prints dos dashboards *(gerar com `docker compose up` + `simulate_traffic`, ver 3.4)*
+- [x] Prints dos dashboards gerados pelo workflow de evidências, com 5 alertas disparados por ataques simulados (3.4)
+- [x] Ambiente completo validado de ponta a ponta com `docker compose` em modo produção (3.4)
 
 **Compliance**
 - [x] STRIDE revisado (API, IoT, dados, ML, pipeline)
@@ -803,3 +888,7 @@ python -m scripts.backup_db backup && python -m scripts.backup_db verify backups
 | `docs_seguranca/evidencias_testes.txt` | 81 testes aprovados, cobertura de 90% |
 | `docs_seguranca/exemplos_logs.jsonl` | logs reais de um cenário de ataque |
 | `docs_seguranca/threat_model_STRIDE.md` | threat model atualizado |
+| `docs_seguranca/prints/01..05_*.png` | Grafana, alertas e targets do Prometheus, Loki e pipeline no GitHub Actions |
+| `docs_seguranca/prints/alertas_prometheus.json` | alertas disparados durante a simulação |
+| `docs_seguranca/prints/logs_amostra_compose.jsonl` | logs reais do ambiente compose (API e ingestão IoT) |
+| `.github/workflows/observability-evidence.yml` | workflow que regenera todas as evidências de observabilidade |

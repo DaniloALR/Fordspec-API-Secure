@@ -1,0 +1,32 @@
+[
+  {
+    "alerta": "ForcaBrutaDetectada",
+    "estado": "firing",
+    "severidade": "critical",
+    "playbook": "PB-01"
+  },
+  {
+    "alerta": "ContaBloqueada",
+    "estado": "firing",
+    "severidade": "warning",
+    "playbook": "PB-01"
+  },
+  {
+    "alerta": "ReusoDeRefreshToken",
+    "estado": "firing",
+    "severidade": "critical",
+    "playbook": "PB-02"
+  },
+  {
+    "alerta": "AlteracaoDePerfil",
+    "estado": "firing",
+    "severidade": "info",
+    "playbook": "PB-03"
+  },
+  {
+    "alerta": "TelemetriaIoTForjadaOuReplay",
+    "estado": "firing",
+    "severidade": "critical",
+    "playbook": "PB-06"
+  }
+]
