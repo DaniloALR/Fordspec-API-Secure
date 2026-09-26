@@ -206,7 +206,7 @@ jobs:
       issues: write
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: image
       - name: Sobe a API em modo staging (segredos efêmeros de CI)
