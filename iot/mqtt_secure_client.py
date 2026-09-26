@@ -103,6 +103,12 @@ def assinar_topico():
 
     mensagens = Counter("fordspec_iot_messages_total",
                         "Mensagens de telemetria por resultado.", ["result"])
+    # séries pré-inicializadas em 0 (increase() precisa de amostra anterior ao ataque)
+    for resultado in ("aceita", "assinatura_invalida", "replay", "timestamp_fora_da_janela",
+                      "device_diferente_do_topico", "schema_invalido", "json_invalido",
+                      "payload_grande", "device_id_invalido", "nonce_invalido",
+                      "campos_desconhecidos", "valor_fora_da_faixa"):
+        mensagens.labels(result=resultado)
     start_http_server(int(os.getenv("IOT_METRICS_PORT", "9101")))
     mestra = chave_mestra()
     nonces = NonceCache()

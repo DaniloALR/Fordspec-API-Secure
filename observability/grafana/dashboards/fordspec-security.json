@@ -30,7 +30,7 @@
       "type": "stat", "title": "Taxa de erros 5xx",
       "datasource": {"type": "prometheus", "uid": "prometheus"},
       "gridPos": {"h": 4, "w": 6, "x": 12, "y": 1},
-      "targets": [{"refId": "A", "expr": "sum(rate(fordspec_http_requests_total{status=~\"5..\"}[5m])) / clamp_min(sum(rate(fordspec_http_requests_total[5m])), 1e-9)"}],
+      "targets": [{"refId": "A", "expr": "(sum(rate(fordspec_http_requests_total{status=~\"5..\"}[5m])) or vector(0)) / clamp_min(sum(rate(fordspec_http_requests_total[5m])), 1e-9)"}],
       "fieldConfig": {"defaults": {"unit": "percentunit",
         "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 0.01}, {"color": "red", "value": 0.05}]}}}
     },
@@ -121,7 +121,7 @@
       "type": "logs", "title": "Eventos de segurança e auditoria",
       "datasource": {"type": "loki", "uid": "loki"},
       "gridPos": {"h": 10, "w": 24, "x": 0, "y": 36},
-      "targets": [{"refId": "A", "expr": "{job=\"fordspec-api\", tipo=~\"seguranca|auditoria|erro\"}"}],
+      "targets": [{"refId": "A", "expr": "{job=\"fordspec-api\", tipo=~\"seguranca|auditoria|erro\"} != \"rate_limit_excedido\""}],
       "options": {"showTime": true, "wrapLogMessage": true, "sortOrder": "Descending", "enableLogDetails": true}
     }
   ]

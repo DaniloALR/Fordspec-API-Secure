@@ -47,7 +47,7 @@ with sync_playwright() as p:
 
     loki = (f"{GRAFANA}/explore?orgId=1&left=%7B%22datasource%22:%22loki%22,%22queries%22:"
             "%5B%7B%22refId%22:%22A%22,%22expr%22:%22%7Bjob%3D%5C%22fordspec-api%5C%22,"
-            "%20tipo%3D%5C%22seguranca%5C%22%7D%22%7D%5D,%22range%22:%7B%22from%22:"
+            "%20tipo%3D~%5C%22seguranca%7Cauditoria%5C%22%7D%20!%3D%20%5C%22rate_limit_excedido%5C%22%22%7D%5D,%22range%22:%7B%22from%22:"
             "%22now-20m%22,%22to%22:%22now%22%7D%7D")
     print_(page, "04_loki_logs_seguranca.png", loki, espera=10)
     browser.close()

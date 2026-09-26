@@ -50,6 +50,25 @@ def ataque_token_forjado(c):
     c.get("/v1/auth/me", headers={"Authorization": f"Bearer {forjado}"})
 
 
+def ataque_reuso_refresh(c, user, senha):
+    """Sessão roubada: o refresh já usado é reapresentado (derruba as sessões)."""
+    r = c.post("/v1/auth/login", json={"username": user, "password": senha})
+    if r.status_code != 200:
+        return
+    antigo = r.json()["refresh_token"]
+    c.post("/v1/auth/refresh", json={"refresh_token": antigo})
+    c.post("/v1/auth/refresh", json={"refresh_token": antigo})
+
+
+def alteracao_critica(c, admin, senha_admin, ciclo):
+    """Administrador cria um usuário e altera o perfil dele (evento auditado)."""
+    h = _login(c, admin, senha_admin)
+    nome = f"sim.usuario{ciclo}"
+    c.post("/v1/admin/users", headers=h, json={
+        "username": nome, "password": "Simulacao-Senha-2026", "role": "brigadista"})
+    c.patch(f"/v1/admin/users/{nome}/role", headers=h, json={"role": "gestor"})
+
+
 def ataque_flood(c, h):
     for _ in range(70):
         c.get("/", headers=h)
@@ -61,14 +80,18 @@ def main():
     p.add_argument("--ciclos", type=int, default=3)
     a = p.parse_args()
     user, senha = os.environ["SIM_USER"], os.environ["SIM_PASSWORD"]
+    admin, senha_admin = os.getenv("SIM_ADMIN_USER"), os.getenv("SIM_ADMIN_PASSWORD")
     with httpx.Client(base_url=a.url, timeout=10) as c:
-        h = _login(c, user, senha)
         for ciclo in range(a.ciclos):
+            h = _login(c, user, senha)
+            if admin and senha_admin:
+                alteracao_critica(c, admin, senha_admin, ciclo)
             for _ in range(10):
                 trafego_legitimo(c, h)
             ataque_injecao(c, h)
             ataque_escalonamento(c, h)
             ataque_token_forjado(c)
+            ataque_reuso_refresh(c, user, senha)
             ataque_brute_force(c)
             ataque_flood(c, h)
             print(f"[simulação] ciclo {ciclo + 1}/{a.ciclos} concluído")

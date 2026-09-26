@@ -75,6 +75,7 @@ jobs:
         run: |
           set -a; . ./.env; set +a
           SIM_USER=brigadista SIM_PASSWORD="$SEED_PASSWORD_BRIGADISTA" \
+          SIM_ADMIN_USER=administrador SIM_ADMIN_PASSWORD="$SEED_PASSWORD_ADMINISTRADOR" \
             python -m scripts.simulate_traffic --url http://localhost:8000 --ciclos 2
 
       - name: Telemetria IoT via MQTT/TLS (normal + replay + forjada)

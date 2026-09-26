@@ -57,3 +57,21 @@ CRITICAL_CHANGES = Counter(
 SPECS_GENERATED = Counter(
     "fordspec_specs_generated_total", "Fichas técnicas geradas.", registry=registry,
 )
+
+
+# Pré-inicializa as séries com rótulos conhecidos em 0. Sem isso a série só nasce no
+# 1º evento e increase()/rate() não têm amostra anterior: o alerta do 1º ataque não
+# dispara (achado no workflow de evidências).
+for _r in ("senha_incorreta", "usuario_inexistente", "conta_bloqueada", "conta_inativa"):
+    LOGIN_FAILURES.labels(reason=_r)
+for _r in ("ausente", "expirado", "invalido", "sessao_invalidada", "refresh_invalido"):
+    TOKEN_REJECTED.labels(reason=_r)
+for _r in ("login", "refresh", "default"):
+    RATE_LIMITED.labels(rule=_r)
+for _a in ("usuario_criado", "alteracao_perfil", "usuario_desativado"):
+    CRITICAL_CHANGES.labels(action=_a)
+for _p in ("catalog:read", "spec:create", "spec:read_own", "spec:read_any", "spec:export",
+           "audit:read", "user:read", "user:manage", "audit:verify"):
+    AUTHZ_DENIED.labels(permission=_p)
+for _p in ("brigadista", "gestor", "administrador"):
+    LOGIN_SUCCESS.labels(role=_p)
