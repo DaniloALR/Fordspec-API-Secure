@@ -133,6 +133,8 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - name: pytest (JWT, RBAC, BOLA, validação, rate limit, cripto, IoT, backup)
         run: pytest --cov=app --cov=iot --cov-report=xml --cov-fail-under=80 --junitxml=pytest.xml
+      - name: Migrações Alembic aplicam do zero (0001 → head)
+        run: APP_ENV=test DATABASE_URL=sqlite:////tmp/migracao.db alembic upgrade head
       - uses: actions/upload-artifact@v4
         if: always()
         with:
