@@ -119,7 +119,7 @@ def assinar_topico():
 
 
 def main():
-    p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    p = argparse.ArgumentParser(description="Cliente MQTT seguro para telemetria FordSpec")
     sub = p.add_subparsers(dest="modo", required=True)
     pub = sub.add_parser("publish")
     pub.add_argument("--device", required=True)

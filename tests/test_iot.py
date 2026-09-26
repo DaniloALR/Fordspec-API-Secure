@@ -1,5 +1,7 @@
 import json
 import ssl
+import subprocess
+import sys
 
 import pytest
 
@@ -75,3 +77,11 @@ def test_contexto_tls_seguro():
     ctx = contexto_tls(None, None, None)
     assert ctx.minimum_version >= ssl.TLSVersion.TLSv1_2
     assert ctx.verify_mode == ssl.CERT_REQUIRED and ctx.check_hostname is True
+
+
+@pytest.mark.parametrize("modulo", ["iot.mqtt_secure_client", "scripts.backup_db",
+                                    "scripts.simulate_traffic"])
+def test_linha_de_comando_inicia(modulo):
+    r = subprocess.run([sys.executable, "-m", modulo, "--help"],
+                       capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stderr
