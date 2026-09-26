@@ -65,11 +65,13 @@ def _cliente(client_id: str):
     return c, os.getenv("MQTT_HOST", "localhost"), porta
 
 
-def publicar(device_id: str, intervalo: float, quantidade: int):
+def publicar(device_id: str, intervalo: float, quantidade: int, ataque: bool = False):
     chave = chave_dispositivo(chave_mestra(), device_id)
     c, host, porta = _cliente(device_id)
     c.connect(host, porta, keepalive=30)
     c.loop_start()
+    topico = TOPICO_TELEMETRIA.format(device=device_id)
+    ultima = None
     try:
         for _ in range(quantidade):
             dados = {
@@ -79,11 +81,18 @@ def publicar(device_id: str, intervalo: float, quantidade: int):
                 "lat": -23.5613 + random.uniform(-0.01, 0.01),  # nosec B311
                 "lon": -46.6565 + random.uniform(-0.01, 0.01),  # nosec B311
             }
-            info = c.publish(TOPICO_TELEMETRIA.format(device=device_id),
-                             assinar(device_id, dados, chave), qos=1)
-            info.wait_for_publish(timeout=10)
+            ultima = assinar(device_id, dados, chave)
+            c.publish(topico, ultima, qos=1).wait_for_publish(timeout=10)
             log("telemetria_publicada", device_id=device_id)
             time.sleep(intervalo)
+        if ataque and ultima:
+            # SIMULAÇÃO de ataque, só para validar detecção/alertas no ambiente local:
+            # 1) replay da última mensagem capturada; 2) mensagem forjada sem a chave.
+            c.publish(topico, ultima, qos=1).wait_for_publish(timeout=10)
+            forjada = assinar(device_id, {"velocidade_kmh": 0},
+                              b"chave-roubada-errada-de-32-bytes!!")
+            c.publish(topico, forjada, qos=1).wait_for_publish(timeout=10)
+            log("ataque_simulado_publicado", device_id=device_id, tipos=["replay", "forjada"])
     finally:
         c.loop_stop()
         c.disconnect()
@@ -128,10 +137,12 @@ def main():
     pub.add_argument("--device", required=True)
     pub.add_argument("--intervalo", type=float, default=5.0)
     pub.add_argument("--quantidade", type=int, default=10)
+    pub.add_argument("--ataque", action="store_true",
+                     help="ao final, envia um replay e uma mensagem forjada (teste de alertas)")
     sub.add_parser("subscribe")
     args = p.parse_args()
     if args.modo == "publish":
-        publicar(args.device, args.intervalo, args.quantidade)
+        publicar(args.device, args.intervalo, args.quantidade, args.ataque)
     else:
         assinar_topico()
 

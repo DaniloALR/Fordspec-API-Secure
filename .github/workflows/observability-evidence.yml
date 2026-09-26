@@ -1,0 +1,124 @@
+# Evidências de observabilidade: sobe o ambiente completo (docker compose), gera
+# tráfego legítimo + ataques simulados (API e IoT) e captura prints de Grafana,
+# Prometheus (alertas disparados) e Loki. Também valida o compose de ponta a ponta.
+name: Evidencias de observabilidade
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "observability/**"
+      - "docker-compose.yml"
+      - ".github/workflows/observability-evidence.yml"
+      - ".github/scripts/capture_dashboards.py"
+
+permissions:
+  contents: read
+
+jobs:
+  evidencias:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Segredos efêmeros (.env, secrets/, certificados de dev)
+        run: |
+          gen() { openssl rand -base64 48 | tr -d '\n/+=' ; }
+          PG=$(gen)
+          cat > .env <<EOF
+          APP_ENV=production
+          JWT_SECRET=$(gen)
+          DATA_ENC_KEYS=$(gen)
+          HMAC_SECRET=$(gen)
+          PSEUDO_SALT=$(gen)
+          BACKUP_ENC_KEY=$(gen)
+          METRICS_TOKEN=$(gen)
+          ALLOWED_HOSTS=localhost,127.0.0.1,api
+          ALLOWED_ORIGINS=http://localhost:8081
+          POSTGRES_USER=fordspec
+          POSTGRES_PASSWORD=$PG
+          POSTGRES_DB=fordspec
+          DATABASE_URL=postgresql+psycopg2://fordspec:$PG@db:5432/fordspec
+          SEED_PASSWORD_BRIGADISTA=Brig-$(gen)
+          SEED_PASSWORD_GESTOR=Gest-$(gen)
+          SEED_PASSWORD_ADMINISTRADOR=Admin-$(gen)
+          IOT_HMAC_MASTER_KEY=$(gen)
+          GF_SECURITY_ADMIN_PASSWORD=$(gen)
+          EOF
+          sed -i 's/^ *//' .env
+          mkdir -p secrets
+          grep '^METRICS_TOKEN=' .env | cut -d= -f2- | tr -d '\n' > secrets/metrics_token.txt
+          echo -n "http://127.0.0.1:9/webhook-demo" > secrets/alert_webhook_url.txt
+          sh scripts/gen_dev_certs.sh infra/certs
+          # somente CI/dev: containers rodam com UIDs diferentes do runner
+          chmod 644 infra/certs/*
+          # mascara os segredos no log do Actions
+          while IFS='=' read -r k v; do [ -n "$v" ] && echo "::add-mask::$v"; done < .env
+
+      - name: docker compose up
+        run: |
+          docker compose up -d --build --wait --wait-timeout 300 \
+            db api mosquitto iot-ingest prometheus alertmanager loki promtail grafana
+          docker compose ps
+
+      - name: Instala dependências dos simuladores e o Playwright
+        run: |
+          pip install -q -r requirements.txt httpx playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Tráfego legítimo + ataques simulados (API)
+        run: |
+          set -a; . ./.env; set +a
+          SIM_USER=brigadista SIM_PASSWORD="$SEED_PASSWORD_BRIGADISTA" \
+            python -m scripts.simulate_traffic --url http://localhost:8000 --ciclos 2
+
+      - name: Telemetria IoT via MQTT/TLS (normal + replay + forjada)
+        run: |
+          set -a; . ./.env; set +a
+          MQTT_HOST=localhost MQTT_CA=infra/certs/ca.crt \
+          MQTT_CERT=infra/certs/ranger-demo-001.crt MQTT_KEY=infra/certs/ranger-demo-001.key \
+            python -m iot.mqtt_secure_client publish --device ranger-demo-001 \
+              --quantidade 20 --intervalo 1 --ataque
+          # prova de que a porta sem TLS não existe
+          ! (timeout 3 bash -c 'echo > /dev/tcp/127.0.0.1/1883') && echo "1883 fechada (OK)"
+
+      - name: Aguarda avaliação dos alertas e captura prints
+        run: |
+          sleep 60
+          set -a; . ./.env; set +a
+          python .github/scripts/capture_dashboards.py prints
+          python - <<'EOF'
+          import json, urllib.request
+          d = json.load(urllib.request.urlopen("http://localhost:9090/api/v1/alerts"))
+          alertas = [{"alerta": a["labels"]["alertname"], "estado": a["state"],
+                      "severidade": a["labels"].get("severity"),
+                      "playbook": a["labels"].get("playbook")} for a in d["data"]["alerts"]]
+          json.dump(alertas, open("prints/alertas_prometheus.json", "w"), indent=2, ensure_ascii=False)
+          print(json.dumps(alertas, indent=2, ensure_ascii=False))
+          EOF
+
+      - name: Coleta logs dos serviços
+        if: always()
+        run: |
+          mkdir -p prints/logs
+          for s in api iot-ingest mosquitto prometheus alertmanager grafana loki promtail db; do
+            docker compose logs --no-color "$s" > "prints/logs/$s.log" 2>&1 || true
+          done
+          docker compose exec -T api sh -c 'tail -n 400 /var/log/fordspec/app.jsonl' \
+            > prints/logs/api_app.jsonl 2>/dev/null || true
+          docker compose ps > prints/logs/compose_ps.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: evidencias-observabilidade
+          path: prints/
+
+      - name: Derruba o ambiente
+        if: always()
+        run: docker compose down -v
