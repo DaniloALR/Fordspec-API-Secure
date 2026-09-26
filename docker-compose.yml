@@ -84,6 +84,11 @@ services:
       IOT_HMAC_MASTER_KEY: ${IOT_HMAC_MASTER_KEY}
     volumes:
       - ./infra/certs:/certs:ro
+    # mesma imagem da API, mas o serviço expõe só as métricas em 9101
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9101/metrics', timeout=2)"]
+      interval: 15s
+      retries: 3
     depends_on: [mosquitto]
     networks: [iot, monitoring]
 
