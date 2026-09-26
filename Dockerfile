@@ -34,6 +34,12 @@ RUN apt-get update \
 
 WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
+# O runtime não instala pacotes: remove pip/setuptools (do venv e do Python base) e os
+# wheels do ensurepip. Eles traziam setuptools e msgpack (vendorizado) com CVEs HIGH
+# apontadas pelo Trivy (CVE-2025-47273, GHSA-6v7p-g79w-8964) e só aumentam a superfície.
+RUN /opt/venv/bin/python -m pip uninstall -y pip setuptools 2>/dev/null || true \
+ && /usr/local/bin/python -m pip uninstall -y pip setuptools wheel 2>/dev/null || true \
+ && rm -rf /usr/local/lib/python3.*/ensurepip /usr/local/bin/pip* /opt/venv/bin/pip*
 # código pertence ao root e é somente leitura para o usuário da aplicação
 COPY app ./app
 COPY iot ./iot
