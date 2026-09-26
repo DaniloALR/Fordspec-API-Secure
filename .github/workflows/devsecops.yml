@@ -36,7 +36,7 @@ jobs:
           tar -xzf /tmp/gl.tgz -C /tmp gitleaks
           /tmp/gitleaks git . --config .gitleaks.toml --redact --verbose \
             --exit-code 1 --report-format sarif --report-path gitleaks.sarif
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: gitleaks-report
@@ -118,7 +118,7 @@ jobs:
         run: pytest --cov=app --cov=iot --cov-report=xml --cov-fail-under=80 --junitxml=pytest.xml
       - name: Migrações Alembic aplicam do zero (0001 → head)
         run: APP_ENV=test DATABASE_URL=sqlite:////tmp/migracao.db alembic upgrade head
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-reports
@@ -185,13 +185,13 @@ jobs:
           image-ref: fordspec-api:${{ github.sha }}
           format: cyclonedx
           output: sbom.cdx.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: sbom
           path: sbom.cdx.json
       - name: Exporta imagem para o DAST
         run: docker save fordspec-api:${{ github.sha }} -o image.tar
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: image
           path: image.tar
