@@ -11,5 +11,5 @@ python-dotenv==1.2.3
 PyJWT==2.15.0
 bcrypt==5.0.0
 cryptography==50.0.1
-paho-mqtt==2.1.0
+paho-mqtt==2.2.0
 prometheus-client==0.26.0
